@@ -44,8 +44,7 @@ func (lab *Lab) addUser(user User) {
 	lab.Users = append(lab.Users, user)
 }
 
-// LabsDB is a struct carrying the bolt database
-// for lab metadata
+// LabsDB is wrapper around a boltdb
 type LabsDB struct {
 	db *bolt.DB
 }
