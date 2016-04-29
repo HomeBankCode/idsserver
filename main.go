@@ -23,7 +23,17 @@ func main() {
 	if labsDBOpenErr != nil {
 		log.Fatal(labsDBOpenErr)
 	}
-	defer labsDB.close()
+	defer labsDB.Close()
+
+	labsDB.addUser("123456", "andrei")
+	labsDB.addUser("123457", "alice")
+	labsDB.addUser("123458", "bob")
+	labsDB.addUser("123459", "sally")
+	labsDB.addUser("123450", "joe")
+
+	labs := labsDB.getAllLabs()
+
+	fmt.Println(labs)
 
 	http.HandleFunc("/", mainHandler)
 	http.ListenAndServe(":8080", nil)
