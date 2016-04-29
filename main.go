@@ -33,7 +33,9 @@ func main() {
 
 	labs := labsDB.getAllLabs()
 
-	fmt.Println(labs)
+	for _, lab := range labs {
+		fmt.Println(*lab)
+	}
 
 	http.HandleFunc("/", mainHandler)
 	http.ListenAndServe(":8080", nil)

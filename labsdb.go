@@ -24,7 +24,7 @@ type User struct {
 }
 
 func (lab *Lab) encode() ([]byte, error) {
-	enc, err := json.Marshal(lab)
+	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +76,9 @@ func (db *LabsDB) addUser(labKey, username string) {
 	newUser := User{Name: username}
 
 	if db.labExists(labKey) {
+		if db.userExists(labKey, username) {
+			return
+		}
 		lab := db.getLab(labKey)
 		lab.addUser(newUser)
 		db.setLab(labKey, lab)
@@ -98,6 +101,33 @@ func (db *LabsDB) labExists(labKey string) bool {
 		}
 		return nil
 	})
+	return exists
+}
+
+// userExists assumes that the lab exists
+func (db *LabsDB) userExists(labKey, username string) bool {
+	var exists = false
+	err := db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labsBucket))
+		lab := bucket.Get([]byte(labKey))
+
+		labData, err := decodeLabJSON(lab)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, user := range labData.Users {
+			if user.Name == username {
+				exists = true
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return exists
 }
 
