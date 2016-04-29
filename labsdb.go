@@ -14,13 +14,13 @@ const labsBucket = "Labs"
 // Lab is a JSON serialization
 // struct representing lab metadata
 type Lab struct {
-	key   string
-	users []User
+	Key   string `json:"key"`
+	Users []User `json:"users"`
 }
 
 // User is a lab user
 type User struct {
-	name string
+	Name string `json:"name"`
 }
 
 func (lab *Lab) encode() ([]byte, error) {
@@ -41,7 +41,7 @@ func decodeLabJSON(data []byte) (*Lab, error) {
 }
 
 func (lab *Lab) addUser(user User) {
-	lab.users = append(lab.users, user)
+	lab.Users = append(lab.Users, user)
 }
 
 // LabsDB is a struct carrying the bolt database
@@ -73,7 +73,7 @@ func (db *LabsDB) openDB() error {
 }
 
 func (db *LabsDB) addUser(labKey, username string) {
-	newUser := User{name: username}
+	newUser := User{Name: username}
 
 	if db.labExists(labKey) {
 		lab := db.getLab(labKey)
@@ -118,6 +118,7 @@ func (db *LabsDB) getLab(labKey string) *Lab {
 
 func (db *LabsDB) setLab(labKey string, data *Lab) {
 	encodedLab, err := data.encode()
+	fmt.Println(encodedLab)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -131,7 +132,7 @@ func (db *LabsDB) setLab(labKey string, data *Lab) {
 }
 
 func (db *LabsDB) createLab(labKey string) {
-	newLab := Lab{key: labKey}
+	newLab := Lab{Key: labKey}
 	encodedLab, err := newLab.encode()
 	if err != nil {
 		log.Fatal(err)
@@ -145,8 +146,8 @@ func (db *LabsDB) createLab(labKey string) {
 }
 
 func (db *LabsDB) createLabAddUser(labKey, username string) {
-	newLab := Lab{key: labKey}
-	newUser := User{name: username}
+	newLab := Lab{Key: labKey}
+	newUser := User{Name: username}
 	newLab.addUser(newUser)
 	encodedLab, err := newLab.encode()
 	if err != nil {
