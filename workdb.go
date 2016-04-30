@@ -16,15 +16,28 @@ type WorkQueue struct {
 	WorkGroups []WorkGroup `json:"work-groups"`
 }
 
-// WorkGroup is the unit of work that gets distributed
+/*
+WorkGroup is the unit of work that gets distributed.
+It contains a lsit of WorkItems. Each WorkItem contains
+5 blocks from a single CLAN file
+*/
 type WorkGroup struct {
+	WorkItems []WorkItem
+}
+
+/*
+WorkItem represents a work item at the granularity of
+a single CLAN file. Each object signifies a group of 5 blocks
+from that specific clan file
+*/
+type WorkItem struct {
 	ID       int    `json:"id"`
-	ClanFile string `json:"clanfile"`
-	Blocks   int    `json:"blocks"`
+	FileName string `json:"filename"`
+	Blocks   []int  `json:"blocks"`
 	Active   bool   `json:"active"`
 }
 
-// WorkDB is a wrapper around a boltdb
+// WorkDB is a wrapper around a boltDB
 type WorkDB struct {
 	db *bolt.DB
 }

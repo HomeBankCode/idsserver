@@ -10,6 +10,13 @@ import (
 
 var labsDB *LabsDB
 
+/*
+dataPath is the path to where all the
+CLAN files and audio blocks are going
+to be stored
+*/
+const dataPath = "data"
+
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "this is the mainHandler")
 }
