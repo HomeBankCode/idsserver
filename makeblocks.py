@@ -6,6 +6,7 @@ import sys
 import random
 import re
 import datetime
+import zipfile
 
 class Block:
     def __init__(self, index, clan_file):
@@ -35,19 +36,32 @@ class Clip:
         self.label_date = None
         self.coder = None
 
+class FileGroup:
+
+    def __init__(self, cha, audio):
+        self.cha_file = cha
+        self.audio_file = audio
+
 
 
 class Parser:
 
-    def __init__(self):
+    def __init__(self, cha_file, audio_file, clips_dir):
 
+        self.cha_file = cha_file
+        self.audio_file = audio_file
         self.clip_blocks = []
-
-        self.clip_directory = ""
-
-        self.audio_file = ""
-
+        self.clip_directory = clips_dir
+        self.audio_file = audio_file
         self.interval_regx = re.compile("\\x15\d+_\d+\\x15")
+
+        self.classification_output = ""
+        self.parse_clan(cha_file)
+
+        self.slice_all_man_fan_blocks()
+
+        self.output_classifications()
+
 
     def parse_clan(self, path):
             conversations = []
@@ -72,19 +86,15 @@ class Parser:
 
             self.find_multitier_parents()
 
-            # self.block_count_label = Label(self.main_frame,
-            #                                text=str(len(conversation_blocks))+\
-            #                                " blocks")
-
-            # self.block_count_label.grid(row=27, column=3, columnspan=1)
-
-            # self.create_random_block_range()
-
     def slice_block(self, block):
 
-        clanfilename = block.clan_file[0:5]
+        clanfilename = block.clan_file.replace(".cha", "")
+
+        class_out_name = block.clan_file.replace(".cha", "_labels.csv")
 
         all_blocks_path = os.path.join(self.clip_directory, clanfilename)
+
+        self.classification_output = os.path.join(all_blocks_path, class_out_name)
 
         if not os.path.exists(all_blocks_path):
             os.makedirs(all_blocks_path)
@@ -114,6 +124,13 @@ class Parser:
 
             pipe = sp.Popen(command, stdout=sp.PIPE, bufsize=10**8)
             out, err = pipe.communicate()
+
+    def slice_all_man_fan_blocks(self):
+        for block in self.clip_blocks:
+            if block.contains_fan_or_man:
+                self.slice_block(block)
+
+
 
     def slice_all_randomized_blocks(self):
 
@@ -173,7 +190,7 @@ class Parser:
         for index, clip in enumerate(clips):
 
             clip_path = os.path.join(self.clip_directory,
-                                     parent_path[0:5],
+                                     parent_path.replace(".cha", ""),
                                      str(block_index),
                                      str(index+1)+".wav")
 
@@ -233,9 +250,80 @@ class Parser:
 
         return [start, end, x_diff]
 
+    def output_classifications(self):
+
+        #[date, coder, clanfile, audiofile, block, timestamp, clip, tier, label, multi-tier]
+
+        with open(self.classification_output, "wb") as output:
+            writer = csv.writer(output)
+            writer.writerow(["date", "coder", "clan_file", "audiofile", "block",
+                             "timestamp", "clip", "tier", "label", "multi-tier-parent", "dont_share"])
+
+            for block in self.clip_blocks:
+                dont_share = False
+                if block.dont_share:
+                    dont_share = True
+                multitier_parent = None
+                for clip in block.clips:
+                    if clip.multiline:
+                        multitier_parent = clip.multi_tier_parent
+                    else:
+                        multitier_parent = "N"
+
+                    writer.writerow([clip.label_date, clip.coder, clip.clan_file,
+                                     clip.parent_audio_path, clip.block_index,
+                                     clip.timestamp, clip.clip_index,clip.clip_tier,
+                                     clip.classification, multitier_parent, dont_share])
+def check_dir(path):
+    files = os.listdir(path)
+
+    filtered_files = [file for file in files if not file.startswith(".")]
+    if len(filtered_files) == 2\
+        and any(".cha" in x for x in files):
+
+        audio = next(file for file in filtered_files if file.endswith(".wav"))
+        cha = next(file for file in filtered_files if file.endswith(".cha"))
+        abs_audio = os.path.join(path, audio)
+        abs_cha = os.path.join(path, cha)
+        group = FileGroup(abs_cha, abs_audio)
+        return group
+    else:
+        return None
+
+
+
+def zip_folder(path):
+    zip_name = path+".zip"
+
+    file = zipfile.ZipFile(zip_name, "w")
+
+    for name in glob.glob("samples/*"):
+        file.write(name, os.path.basename(name), zipfile.ZIP_DEFLATED)
+
+
+def zip_dir(path, ziph):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file))
 
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
-    print "hello"
+    clips_dir = sys.argv[2]
 
+    # for root, dirs, files in os.walk(start_dir):
+    #     if len(dirs) == 0:
+    #         paths = check_dir(root)
+    #
+    #         if paths:
+    #             parser = Parser(paths.cha_file, paths.audio_file, clips_dir)
+    #
+
+
+    for dir in os.listdir(clips_dir):
+        blocks = os.path.join(clips_dir, dir)
+        for block in os.listdir(blocks):
+
+            zipf = zipfile.ZipFile('Python.zip', 'w', zipfile.ZIP_DEFLATED)
+            zip_dir('tmp/', zipf)
+            zipf.close()
