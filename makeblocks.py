@@ -7,6 +7,7 @@ import random
 import re
 import datetime
 import zipfile
+import shutil
 
 class Block:
     def __init__(self, index, clan_file):
@@ -60,9 +61,6 @@ class Parser:
 
         self.slice_all_man_fan_blocks()
 
-        self.output_classifications()
-
-
     def parse_clan(self, path):
             conversations = []
 
@@ -94,7 +92,7 @@ class Parser:
 
         all_blocks_path = os.path.join(self.clip_directory, clanfilename)
 
-        self.classification_output = os.path.join(all_blocks_path, class_out_name)
+        self.classification_output = os.path.join(all_blocks_path, str(block.index), class_out_name)
 
         if not os.path.exists(all_blocks_path):
             os.makedirs(all_blocks_path)
@@ -124,6 +122,8 @@ class Parser:
 
             pipe = sp.Popen(command, stdout=sp.PIPE, bufsize=10**8)
             out, err = pipe.communicate()
+
+        self.output_classifications()
 
     def slice_all_man_fan_blocks(self):
         for block in self.clip_blocks:
@@ -290,40 +290,26 @@ def check_dir(path):
     else:
         return None
 
+def zip_block_dirs(clips_dir):
+    dirs = [x[0] for x in os.walk(clips_dir)]
 
-
-def zip_folder(path):
-    zip_name = path+".zip"
-
-    file = zipfile.ZipFile(zip_name, "w")
-
-    for name in glob.glob("samples/*"):
-        file.write(name, os.path.basename(name), zipfile.ZIP_DEFLATED)
-
-
-def zip_dir(path, ziph):
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            ziph.write(os.path.join(root, file))
+    for dir in dirs:
+        if dir.count("/") == 2:
+            shutil.make_archive(dir, 'zip', dir)
 
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
     clips_dir = sys.argv[2]
 
-    # for root, dirs, files in os.walk(start_dir):
-    #     if len(dirs) == 0:
-    #         paths = check_dir(root)
-    #
-    #         if paths:
-    #             parser = Parser(paths.cha_file, paths.audio_file, clips_dir)
-    #
+    for root, dirs, files in os.walk(start_dir):
+        if len(dirs) == 0:
+            paths = check_dir(root)
+
+            if paths:
+                parser = Parser(paths.cha_file, paths.audio_file, clips_dir)
 
 
-    for dir in os.listdir(clips_dir):
-        blocks = os.path.join(clips_dir, dir)
-        for block in os.listdir(blocks):
 
-            zipf = zipfile.ZipFile('Python.zip', 'w', zipfile.ZIP_DEFLATED)
-            zip_dir('tmp/', zipf)
-            zipf.close()
+    zip_block_dirs(clips_dir)
+
