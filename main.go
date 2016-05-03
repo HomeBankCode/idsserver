@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-
-	"github.com/boltdb/bolt"
+	"os"
 )
 
 var labsDB *LabsDB
@@ -23,26 +21,33 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	labsDB := LabsDB{db: new(bolt.DB)}
+	manifestFile = os.Args[1]
 
-	labsDBOpenErr := labsDB.openDB()
+	fmt.Println(manifestFile)
+	dataMap := fillDataMap()
+	fmt.Printf("\n\n")
+	fmt.Println(dataMap["30_13_coderJS_final-8"])
 
-	if labsDBOpenErr != nil {
-		log.Fatal(labsDBOpenErr)
-	}
-	defer labsDB.Close()
-
-	labsDB.addUser("123456", "andrei")
-	labsDB.addUser("123457", "alice")
-	labsDB.addUser("123458", "bob")
-	labsDB.addUser("123459", "sally")
-	labsDB.addUser("123450", "joe")
-
-	labs := labsDB.getAllLabs()
-
-	for _, lab := range labs {
-		fmt.Println(*lab)
-	}
+	// labsDB := LabsDB{db: new(bolt.DB)}
+	//
+	// labsDBOpenErr := labsDB.openDB()
+	//
+	// if labsDBOpenErr != nil {
+	// 	log.Fatal(labsDBOpenErr)
+	// }
+	// defer labsDB.Close()
+	//
+	// labsDB.addUser("123456", "andrei")
+	// labsDB.addUser("123457", "alice")
+	// labsDB.addUser("123458", "bob")
+	// labsDB.addUser("123459", "sally")
+	// labsDB.addUser("123450", "joe")
+	//
+	// labs := labsDB.getAllLabs()
+	//
+	// for _, lab := range labs {
+	// 	fmt.Println(*lab)
+	// }
 
 	http.HandleFunc("/", mainHandler)
 	http.ListenAndServe(":8080", nil)

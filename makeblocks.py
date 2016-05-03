@@ -297,6 +297,26 @@ def zip_block_dirs(clips_dir):
         if dir.count("/") == 2:
             shutil.make_archive(dir, 'zip', dir)
 
+
+def print_manifest(clips_dir):
+
+    # [clan_file, block_index, path_to_block]
+    output = []
+
+    for root, dirs, files in os.walk(clips_dir):
+        if any(".zip" in file for file in files):
+            for file in files:
+                if ".zip" in file:
+                    clan_file = os.path.basename(root)
+                    block_index = file.replace(".zip", "")
+                    block_path = os.path.join(root, file)
+                    output.append([clan_file, block_index, block_path])
+
+    with open(os.path.join(clips_dir, "path_manifest.csv"), "wb") as output_file:
+        writer = csv.writer(output_file)
+        writer.writerow(["clanfile", "block_index", "block_path"])
+        writer.writerows(output)
+
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
@@ -312,4 +332,6 @@ if __name__ == "__main__":
 
 
     zip_block_dirs(clips_dir)
+
+    print_manifest(clips_dir)
 
