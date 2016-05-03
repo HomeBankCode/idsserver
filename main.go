@@ -37,6 +37,20 @@ var (
 		dataMap is the global map of CLAN files to block paths
 	*/
 	dataMap DataMap
+
+	/*
+		activeWorkItems is a map of WorkItem ID's. All the ID's
+		represent blocks which have been sent out to be worked on.
+		(i.e. active blocks)
+
+		format:
+
+		map["30_13_coderJS_final-2:::6" : true , "32_13_coderJS_final-5:::16" : true, ......]
+
+		The ID's are a concatenation of the name of the CLAN file of origin
+		and the block index, separated by ":::".
+	*/
+	activeWorkItems ActiveDataQueue
 )
 
 const (
@@ -71,6 +85,14 @@ func main() {
 
 	fmt.Println("# of work items: ", len(workItems))
 
+	for _, item := range workItems {
+		// data, err := json.MarshalIndent(item, "", "  ")
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		fmt.Println(item)
+	}
+
 	// Open the LabsDB
 	labsDB, err := LoadLabsDB()
 	if err != nil {
@@ -84,14 +106,6 @@ func main() {
 	}
 	defer workDB.Close()
 
-	// labsDB := LabsDB{db: new(bolt.DB)}
-	//
-	// labsDBOpenErr := labsDB.openDB()
-	//
-	// if labsDBOpenErr != nil {
-	// 	log.Fatal(labsDBOpenErr)
-	// }
-	// defer labsDB.Close()
 	//
 	// labsDB.addUser("123456", "andrei")
 	// labsDB.addUser("123457", "alice")

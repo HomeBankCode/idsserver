@@ -32,14 +32,15 @@ type WorkGroup struct {
 
 /*
 WorkItem represents a work item at the granularity of
-a single CLAN file. Each object signifies a group of
-{numBlocksSent} blocks from that specific clan file
+a single CLAN file. Each WorkItem signifies a single
+block from that specific clan file
 */
 type WorkItem struct {
-	ID       int    `json:"id"`
-	FileName string `json:"filename"`
-	Blocks   []int  `json:"blocks"`
-	Active   bool   `json:"active"`
+	ID        string `json:"id"`
+	FileName  string `json:"filename"`
+	Block     int    `json:"block"`
+	Active    bool   `json:"active"`
+	BlockPath string `json:"block-path"`
 }
 
 // WorkDB is a wrapper around a boltDB
@@ -124,4 +125,20 @@ func (db *WorkDB) getAllWorkGroups() []*WorkGroup {
 		log.Fatal(err)
 	}
 	return workGroups
+}
+
+func activateWorkItem(item WorkItem) {
+	activeWorkItems = append(activeWorkItems, item.ID)
+}
+
+/*
+workItemIsActive checks to see is a WorkItem
+is part of the global activeWorkItems map.
+*/
+func workItemIsActive(item WorkItem) bool {
+	_, exists := activeWorkItems[item.ID]
+	if exists {
+		return true
+	}
+	return false
 }

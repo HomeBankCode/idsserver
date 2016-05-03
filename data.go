@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -27,12 +26,12 @@ lookups to the relevant files
 type DataMap map[string]*DataGroup
 
 /*
-ActiveDataQueue is a map of ID's to booleans.
-The bool values represent whether a
-CLAN file is actively being worked on
-or not.
+ActiveDataQueue is a map of WorkItem
+ID's. All these ID's represent the blocks
+which have been sent out to be worked on.
+(i.e. active blocks)
 */
-type ActiveDataQueue map[uint]bool
+type ActiveDataQueue map[string]bool
 
 /*
 fillDataMap reads a path_manifest.csv file and
@@ -84,37 +83,31 @@ func fillDataMap() DataMap {
 	return dataMap
 }
 
+/*
+partitionIntoWorkItems breaks up the DataMap into
+an array of WorkItem's and returns it
+*/
 func (dataMap DataMap) partitionIntoWorkItems() []WorkItem {
 	var (
 		workItems    []WorkItem
-		currWorkItem WorkItem
+		currWorkItem = WorkItem{}
 	)
 
 	for key, value := range dataMap {
-		fmt.Printf("key: \n%s\n\nvalue: \n%v\n\n", key, value)
-
-		currWorkItem.FileName = value.ClanFile
-
-		count := 0
-
-		var (
-			groupLength    = len(value.BlockPaths)
-			numFullItems   = groupLength / numBlocksSent
-			itemsRemainder = groupLength % numBlocksSent
-		)
-
-		fmt.Printf("groupLength: %d\n", groupLength)
-		fmt.Printf("numFullItems: %d\n", numFullItems)
-		fmt.Printf("itemsRemainder: %d\n", itemsRemainder)
+		currWorkItem = WorkItem{}
+		currWorkItem.FileName = key
 
 		for blockKey, blockValue := range value.BlockPaths {
-			if count == numBlocksSent-1 {
-				workItems = append(workItems, currWorkItem)
-				currWorkItem = WorkItem{FileName: value.ClanFile}
-				count = 0
-			}
-			fmt.Printf("\nblockKey: %d\nblockValue: %v\n", blockKey, blockValue)
-			count++
+
+			currWorkItem.ID = key + ":::" + strconv.Itoa(blockKey)
+			currWorkItem.Block = blockKey
+			currWorkItem.Active = false
+			currWorkItem.FileName = value.ClanFile
+			currWorkItem.BlockPath = blockValue
+
+			workItems = append(workItems, currWorkItem)
+			currWorkItem = WorkItem{FileName: value.ClanFile}
+
 		}
 	}
 	return workItems
