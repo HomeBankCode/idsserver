@@ -6,24 +6,36 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path"
 )
 
 /*
-GetBlocksRequest is a struct representing a request
-sent to the server asking for a new WorkGroup
+BlockRequest is a struct representing a request
+sent to the server asking for a single block (i.e. WorkItem)
 */
-type GetBlocksRequest struct {
+type BlockRequest struct {
 	LabKey   string `json:"lab-key"`
 	Username string `json:"username"`
+	//NumItems int    `json:"num-items"`
 }
 
-func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
+/*
+WorkGroupRequest is a struct representing a request
+sent to the server asking for a new WorkGroup
+*/
+type WorkGroupRequest struct {
+	LabKey   string `json:"lab-key"`
+	Username string `json:"username"`
+	NumItems int    `json:"num-items"`
+}
+
+func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var blocksRequest GetBlocksRequest
+	var blockRequest BlockRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -32,11 +44,47 @@ func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &blocksRequest)
+	json.Unmarshal(jsonDataFromHTTP, &blockRequest)
 
-	fmt.Println(blocksRequest)
+	fmt.Println(blockRequest)
 
-	newWorkGroup := NewWorkGroup()
+	returnBlocks, err := chooseUniqueWorkItems(1)
+	item := returnBlocks[0]
+
+	blockPath := item.BlockPath
+	blockName := path.Base(blockPath)
+
+	dispositionString := "attachment; filename=" + blockName
+
+	fmt.Println(item)
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", dispositionString)
+
+	http.ServeFile(w, r, item.BlockPath)
+
+}
+
+func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var workGroupRequest WorkGroupRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &workGroupRequest)
+
+	fmt.Println(workGroupRequest)
+
+	newWorkGroup := NewWorkGroup(workGroupRequest.NumItems)
 
 	fmt.Println(newWorkGroup)
 

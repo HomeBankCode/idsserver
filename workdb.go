@@ -36,8 +36,8 @@ NewWorkGroup returns a new WorkGroup containing
 be from distinct files and not currently being
 worked on (i.e. haven't been send to any coders yet)
 */
-func NewWorkGroup() WorkGroup {
-	workItems, err := chooseUniqueWorkItems(numBlocksToSend)
+func NewWorkGroup(numItems int) WorkGroup {
+	workItems, err := chooseUniqueWorkItems(numItems)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,10 +141,6 @@ func (db *WorkDB) getAllWorkGroups() []*WorkGroup {
 	return workGroups
 }
 
-func activateWorkItem(item WorkItem) {
-	activeWorkItems[item.ID] = true
-}
-
 /*
 workItemIsActive checks to see if a WorkItem
 is part of the global activeWorkItems map.
@@ -175,7 +171,6 @@ func activateWorkItem(item WorkItem) {
 
 func chooseUniqueWorkItems(numItems int) ([]WorkItem, error) {
 	var workItems []WorkItem
-
 	for item, active := range workItemMap {
 		if len(workItems) == numItems {
 			break
@@ -188,8 +183,8 @@ func chooseUniqueWorkItems(numItems int) ([]WorkItem, error) {
 	return workItems, nil
 }
 
-func fileExistsInWorkItemArray(file string, array []WorkItem) {
-	for index, item := range array {
+func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
+	for _, item := range array {
 		if item.FileName == file {
 			return true
 		}

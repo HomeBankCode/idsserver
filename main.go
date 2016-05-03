@@ -87,24 +87,16 @@ func main() {
 
 	dataMap := fillDataMap()
 
-	//fmt.Printf("\n\n")
-	//fmt.Println(dataMap["30_13_coderJS_final-8"])
+	workItemMap = dataMap.partitionIntoWorkItemsMap()
 
-	workItems := dataMap.partitionIntoWorkItems()
-
-	workItemMap := dataMap.partitionIntoWorkItemsMap()
-
-	fmt.Println("# of work items: ", len(workItems))
+	//fmt.Println("# of work items: ", len(workItems))
 	fmt.Println("# of work items map: ", len(workItemMap))
 
-	for key, value := range workItemMap {
-		// data, err := json.MarshalIndent(item, "", "  ")
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		fmt.Println(key)
-		fmt.Println(value)
-	}
+	// for key, value := range workItemMap {
+	//
+	// 	fmt.Println(key)
+	// 	fmt.Println(value)
+	// }
 
 	// Open the LabsDB
 	labsDB, err := LoadLabsDB()
@@ -133,7 +125,7 @@ func main() {
 	// }
 
 	http.HandleFunc("/", mainHandler)
-	http.HandleFunc("/getblocks/", getWorkGroupHandler)
+	http.HandleFunc("/getblock/", getBlockHandler)
 	http.ListenAndServe(":8080", nil)
 
 }
