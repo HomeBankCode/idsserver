@@ -49,7 +49,18 @@ type LabsDB struct {
 	db *bolt.DB
 }
 
-func (db *LabsDB) openDB() error {
+// LoadLabsDB loads the global LabsDB
+func LoadLabsDB() (*LabsDB, error) {
+	labsDB := &LabsDB{db: new(bolt.DB)}
+	err := labsDB.Open()
+	if err != nil {
+		return nil, err
+	}
+	return labsDB, nil
+}
+
+// Open opens the database and returns error on failure
+func (db *LabsDB) Open() error {
 	labsDB, openErr := bolt.Open(labsDBPath, 0600, nil)
 
 	if openErr != nil {
@@ -69,6 +80,11 @@ func (db *LabsDB) openDB() error {
 	})
 
 	return err
+}
+
+// Close closes the database
+func (db *LabsDB) Close() {
+	db.db.Close()
 }
 
 func (db *LabsDB) addUser(labKey, username string) {
@@ -212,9 +228,4 @@ func (db *LabsDB) getAllLabs() []*Lab {
 		log.Fatal(err)
 	}
 	return labs
-}
-
-// Close closes the boltdb
-func (db *LabsDB) Close() {
-	db.db.Close()
 }
