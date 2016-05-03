@@ -20,7 +20,8 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name string `json:"name"`
+	Name      string    `json:"name"`
+	WorkItems WorkGroup `json:"work-items"`
 }
 
 func (lab *Lab) encode() ([]byte, error) {

@@ -39,6 +39,15 @@ var (
 	dataMap DataMap
 
 	/*
+	   workItemMap is a map of WorkItem to bool.
+	   The boolean value represents whether or not
+	   the particular work item is active or not.
+	   Active means it's been sent out for coding
+	   and has not been submitted back yet.
+	*/
+	workItemMap WorkItemMap
+
+	/*
 		activeWorkItems is a map of WorkItem ID's. All the ID's
 		represent blocks which have been sent out to be worked on.
 		(i.e. active blocks)
@@ -62,10 +71,10 @@ const (
 	dataPath = "data"
 
 	/*
-		numBlocksSent is the number of blocks that will be sent
+		numBlocksToSend is the number of blocks that will be sent
 		from any given CLAN file to the end user upon request
 	*/
-	numBlocksSent = 5
+	numBlocksToSend = 5
 )
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
@@ -83,14 +92,18 @@ func main() {
 
 	workItems := dataMap.partitionIntoWorkItems()
 
-	fmt.Println("# of work items: ", len(workItems))
+	workItemMap := dataMap.partitionIntoWorkItemsMap()
 
-	for _, item := range workItems {
+	fmt.Println("# of work items: ", len(workItems))
+	fmt.Println("# of work items map: ", len(workItemMap))
+
+	for key, value := range workItemMap {
 		// data, err := json.MarshalIndent(item, "", "  ")
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
-		fmt.Println(item)
+		fmt.Println(key)
+		fmt.Println(value)
 	}
 
 	// Open the LabsDB
@@ -120,6 +133,7 @@ func main() {
 	// }
 
 	http.HandleFunc("/", mainHandler)
+	http.HandleFunc("/getblocks/", getWorkGroupHandler)
 	http.ListenAndServe(":8080", nil)
 
 }

@@ -34,6 +34,15 @@ which have been sent out to be worked on.
 type ActiveDataQueue map[string]bool
 
 /*
+WorkItemMap is a map of WorkItem to bool.
+The boolean value represents whether or not
+the particular work item is active or not.
+Active means it's been sent out for coding
+and has not been submitted back yet.
+*/
+type WorkItemMap map[WorkItem]bool
+
+/*
 fillDataMap reads a path_manifest.csv file and
 fills a DataMap with all the paths to the CLAN
 files and blocks
@@ -107,6 +116,36 @@ func (dataMap DataMap) partitionIntoWorkItems() []WorkItem {
 
 			workItems = append(workItems, currWorkItem)
 			currWorkItem = WorkItem{FileName: value.ClanFile}
+
+		}
+	}
+	return workItems
+}
+
+/*
+partitionIntoWorkItemsMap breaks up the DataMap into
+an array of WorkItem's and returns it
+*/
+func (dataMap DataMap) partitionIntoWorkItemsMap() WorkItemMap {
+	var (
+		workItems    = make(WorkItemMap)
+		currWorkItem = WorkItem{}
+	)
+
+	for key, value := range dataMap {
+		currWorkItem = WorkItem{}
+		currWorkItem.FileName = key
+
+		for blockKey, blockValue := range value.BlockPaths {
+			currWorkItem = WorkItem{}
+
+			currWorkItem.ID = key + ":::" + strconv.Itoa(blockKey)
+			currWorkItem.Block = blockKey
+			currWorkItem.Active = false
+			currWorkItem.FileName = value.ClanFile
+			currWorkItem.BlockPath = blockValue
+
+			workItems[currWorkItem] = false
 
 		}
 	}

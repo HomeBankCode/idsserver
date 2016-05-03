@@ -27,7 +27,21 @@ It contains a list of WorkItems. Each WorkItem contains
 5 blocks from a single CLAN file
 */
 type WorkGroup struct {
-	WorkItems []WorkItem
+	WorkItems []WorkItem `json:"work-items"`
+}
+
+/*
+NewWorkGroup returns a new WorkGroup containing
+(numBlocksToSend) WorkItems uniquely selected to
+be from distinct files and not currently being
+worked on (i.e. haven't been send to any coders yet)
+*/
+func NewWorkGroup() WorkGroup {
+	workItems, err := chooseUniqueWorkItems(numBlocksToSend)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return WorkGroup{WorkItems: workItems}
 }
 
 /*
@@ -128,17 +142,57 @@ func (db *WorkDB) getAllWorkGroups() []*WorkGroup {
 }
 
 func activateWorkItem(item WorkItem) {
-	activeWorkItems = append(activeWorkItems, item.ID)
+	activeWorkItems[item.ID] = true
 }
 
 /*
-workItemIsActive checks to see is a WorkItem
+workItemIsActive checks to see if a WorkItem
 is part of the global activeWorkItems map.
 */
 func workItemIsActive(item WorkItem) bool {
 	_, exists := activeWorkItems[item.ID]
 	if exists {
 		return true
+	}
+	return false
+}
+
+/*
+inactivateWorkItem sets the WorkItem to true
+in the workItemMap
+*/
+func inactivateWorkItem(item WorkItem) {
+	workItemMap[item] = false
+}
+
+/*
+activateWorkItem sets the WorkItem to false
+in the workItemMap
+*/
+func activateWorkItem(item WorkItem) {
+	workItemMap[item] = true
+}
+
+func chooseUniqueWorkItems(numItems int) ([]WorkItem, error) {
+	var workItems []WorkItem
+
+	for item, active := range workItemMap {
+		if len(workItems) == numItems {
+			break
+		}
+		if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
+			activateWorkItem(item)
+			workItems = append(workItems, item)
+		}
+	}
+	return workItems, nil
+}
+
+func fileExistsInWorkItemArray(file string, array []WorkItem) {
+	for index, item := range array {
+		if item.FileName == file {
+			return true
+		}
 	}
 	return false
 }
