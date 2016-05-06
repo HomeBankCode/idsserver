@@ -14,14 +14,15 @@ const labsBucket = "Labs"
 // Lab is a JSON serialization
 // struct representing lab metadata
 type Lab struct {
-	Key   string `json:"key"`
-	Users []User `json:"users"`
+	Key   string          `json:"key"`
+	Users map[string]User `json:"users"`
 }
 
 // User is a lab user
 type User struct {
-	Name      string    `json:"name"`
-	WorkItems WorkGroup `json:"work-items"`
+	Name      string     `json:"name"`
+	ParentLab string     `json:"parent-lab"`
+	WorkItems []WorkItem `json:"work-items"`
 }
 
 func (lab *Lab) encode() ([]byte, error) {
@@ -42,7 +43,8 @@ func decodeLabJSON(data []byte) (*Lab, error) {
 }
 
 func (lab *Lab) addUser(user User) {
-	lab.Users = append(lab.Users, user)
+	user.ParentLab = lab.Key
+	lab.Users[user.Name] = user
 }
 
 // LabsDB is wrapper around a boltdb
@@ -89,7 +91,7 @@ func (db *LabsDB) Close() {
 }
 
 func (db *LabsDB) addUser(labKey, username string) {
-	newUser := User{Name: username}
+	newUser := User{Name: username, ParentLab: labKey}
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {
@@ -122,7 +124,7 @@ func (db *LabsDB) labExists(labKey string) bool {
 
 // userExists assumes that the lab exists
 func (db *LabsDB) userExists(labKey, username string) bool {
-	var exists = false
+	var userExists = false
 	err := db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(labsBucket))
 		lab := bucket.Get([]byte(labKey))
@@ -132,19 +134,20 @@ func (db *LabsDB) userExists(labKey, username string) bool {
 			log.Fatal(err)
 		}
 
-		for _, user := range labData.Users {
-			if user.Name == username {
-				exists = true
-			}
+		_, exists := labData.Users[username]
+		if exists {
+			userExists = true
 		}
-		return nil
+		userExists = false
+
+		return err
 	})
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return exists
+	return userExists
 }
 
 func (db *LabsDB) getLab(labKey string) *Lab {
@@ -229,4 +232,19 @@ func (db *LabsDB) getAllLabs() []*Lab {
 		log.Fatal(err)
 	}
 	return labs
+}
+
+func (db *LabsDB) getUser(labKey, username string) User {
+
+	var lab = db.getLab(labKey)
+	user := lab.Users[username]
+	return user
+
+}
+
+func (db *LabsDB) setUser(user User) {
+	var lab = db.getLab(user.ParentLab)
+	lab.Users[user.Name] = user
+	db.setLab(lab.Key, lab)
+
 }

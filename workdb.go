@@ -36,8 +36,8 @@ NewWorkGroup returns a new WorkGroup containing
 be from distinct files and not currently being
 worked on (i.e. haven't been send to any coders yet)
 */
-func NewWorkGroup(numItems int) WorkGroup {
-	workItems, err := chooseUniqueWorkItems(numItems)
+func NewWorkGroup(wgRequest WorkGroupRequest) WorkGroup {
+	workItems, err := chooseUniqueWorkItems(wgRequest)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,6 +100,67 @@ func (db *WorkDB) Close() {
 	db.db.Close()
 }
 
+/*
+fillWithDataMap fills the global workDB with the active/inactive
+map of all the work items. Keys are WorkItem ID's and the values
+are the bool values from the map.
+
+true = active
+false = inactive
+
+*/
+func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
+
+	for item, active := range itemMap {
+
+		// turn WorkItem into []byte
+		encodedItem, err := item.encode()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		updateErr := db.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(workBucket))
+			err := bucket.Put([]byte(item.ID), encodedItem)
+			return err
+		})
+
+		if updateErr != nil {
+			log.Fatal(err)
+		}
+
+	}
+
+}
+
+/*
+loadItemMap reads the WorkItemMap from the workDB.
+*/
+func (db *WorkDB) loadItemMap() WorkItemMap {
+	var itemMap WorkItemMap
+
+	err := db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(workBucket))
+
+		cursor := bucket.Cursor()
+
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			fmt.Printf("key=%s, value=%s\n", k, v)
+			currItem, err := decodeLabJSON(v)
+			if err != nil {
+				log.Fatal(err)
+			}
+			labs = append(labs, currLab)
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
 func (wg *WorkGroup) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(wg, "", " ")
 	if err != nil {
@@ -108,7 +169,25 @@ func (wg *WorkGroup) encode() ([]byte, error) {
 	return enc, nil
 }
 
-func decodeWorkJSON(data []byte) (*WorkGroup, error) {
+func (wi *WorkItem) encode() ([]byte, error) {
+	enc, err := json.MarshalIndent(wi, "", " ")
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
+}
+
+func decodeWorkItemJSON(data []byte) (*WorkItem, error) {
+	var workItem *WorkItem
+	err := json.Unmarshal(data, &workItem)
+	if err != nil {
+		return nil, err
+	}
+	return workItem, nil
+
+}
+
+func decodeWorkGroupJSON(data []byte) (*WorkGroup, error) {
 	var wg *WorkGroup
 	err := json.Unmarshal(data, &wg)
 	if err != nil {
@@ -117,29 +196,29 @@ func decodeWorkJSON(data []byte) (*WorkGroup, error) {
 	return wg, nil
 }
 
-func (db *WorkDB) getAllWorkGroups() []*WorkGroup {
-	var workGroups []*WorkGroup
-	err := db.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(workBucket))
+/*func (db *WorkDB) getAllWorkGroups() []*WorkGroup {*/
+//var workGroups []*WorkGroup
+//err := db.db.View(func(tx *bolt.Tx) error {
+//bucket := tx.Bucket([]byte(workBucket))
 
-		cursor := bucket.Cursor()
+//cursor := bucket.Cursor()
 
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			fmt.Printf("key=%s, value=%s\n", k, v)
-			currGroup, err := decodeWorkJSON(v)
-			if err != nil {
-				log.Fatal(err)
-			}
-			workGroups = append(workGroups, currGroup)
-		}
+//for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+//fmt.Printf("key=%s, value=%s\n", k, v)
+//currGroup, err := decodeWorkJSON(v)
+//if err != nil {
+//log.Fatal(err)
+//}
+//workGroups = append(workGroups, currGroup)
+//}
 
-		return nil
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	return workGroups
-}
+//return nil
+//})
+//if err != nil {
+//log.Fatal(err)
+//}
+//return workGroups
+/*}*/
 
 /*
 workItemIsActive checks to see if a WorkItem
@@ -165,18 +244,22 @@ func inactivateWorkItem(item WorkItem) {
 activateWorkItem sets the WorkItem to false
 in the workItemMap
 */
-func activateWorkItem(item WorkItem) {
+func activateWorkItem(item WorkItem, request BlockRequest) {
 	workItemMap[item] = true
+
+	user := labsDB.getUser(request.LabKey, request.Username)
+	user.WorkItems = append(user.WorkItems, item)
+	labsDB.setUser(user)
 }
 
-func chooseUniqueWorkItems(numItems int) ([]WorkItem, error) {
+func chooseUniqueWorkItems(wgRequest WorkGroupRequest) ([]WorkItem, error) {
 	var workItems []WorkItem
 	for item, active := range workItemMap {
-		if len(workItems) == numItems {
+		if len(workItems) == wgRequest.NumItems {
 			break
 		}
 		if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
-			activateWorkItem(item)
+			activateWorkItem(item, wgRequest.toBlockRequest())
 			workItems = append(workItems, item)
 		}
 	}
@@ -190,4 +273,34 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 		}
 	}
 	return false
+}
+
+func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
+	var workItem WorkItem
+	for item, active := range workItemMap {
+
+		// if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
+		// 	activateWorkItem(item)
+		// 	workItems = append(workItems, item)
+		// }
+
+		if !active && blockAppropriateForUser(request) {
+			activateWorkItem(item, request)
+
+			workItem = item
+		}
+	}
+	return workItem, nil
+}
+
+func blockAppropriateForUser(request BlockRequest) bool {
+	return true
+}
+
+func Btoa(value bool) string {
+	if value {
+		return "true"
+	} else {
+		return "false"
+	}
 }

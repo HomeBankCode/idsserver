@@ -19,6 +19,15 @@ type BlockRequest struct {
 	//NumItems int    `json:"num-items"`
 }
 
+func (br *BlockRequest) userID() string {
+	return br.LabKey + ":::" + br.Username
+}
+
+func (br *BlockRequest) userFromDB() User {
+	user := labsDB.getUser(br.LabKey, br.Username)
+	return user
+}
+
 /*
 WorkGroupRequest is a struct representing a request
 sent to the server asking for a new WorkGroup
@@ -27,6 +36,10 @@ type WorkGroupRequest struct {
 	LabKey   string `json:"lab-key"`
 	Username string `json:"username"`
 	NumItems int    `json:"num-items"`
+}
+
+func (wgr *WorkGroupRequest) toBlockRequest() BlockRequest {
+	return BlockRequest{LabKey: wgr.LabKey, Username: wgr.Username}
 }
 
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,20 +61,21 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(blockRequest)
 
-	returnBlocks, err := chooseUniqueWorkItems(1)
-	item := returnBlocks[0]
+	fmt.Println(blockRequest.userID())
 
-	blockPath := item.BlockPath
+	workItem, err := chooseUniqueWorkItem(blockRequest)
+
+	blockPath := workItem.BlockPath
 	blockName := path.Base(blockPath)
 
 	dispositionString := "attachment; filename=" + blockName
 
-	fmt.Println(item)
+	fmt.Println(workItem)
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", dispositionString)
 
-	http.ServeFile(w, r, item.BlockPath)
+	http.ServeFile(w, r, workItem.BlockPath)
 
 }
 
@@ -84,7 +98,7 @@ func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(workGroupRequest)
 
-	newWorkGroup := NewWorkGroup(workGroupRequest.NumItems)
+	newWorkGroup := NewWorkGroup(workGroupRequest)
 
 	fmt.Println(newWorkGroup)
 
