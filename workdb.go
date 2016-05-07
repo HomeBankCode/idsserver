@@ -24,7 +24,7 @@ type WorkQueue struct {
 /*
 WorkGroup is the unit of work that gets distributed.
 It contains a list of WorkItems. Each WorkItem contains
-5 blocks from a single CLAN file
+1 block from a single CLAN file
 */
 type WorkGroup struct {
 	WorkItems []WorkItem `json:"work-items"`
@@ -111,7 +111,7 @@ false = inactive
 */
 func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 
-	for item, active := range itemMap {
+	for id, item := range itemMap {
 
 		// turn WorkItem into []byte
 		encodedItem, err := item.encode()
@@ -121,7 +121,7 @@ func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 
 		updateErr := db.db.Update(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(workBucket))
-			err := bucket.Put([]byte(item.ID), encodedItem)
+			err := bucket.Put([]byte(id), encodedItem)
 			return err
 		})
 
@@ -146,11 +146,11 @@ func (db *WorkDB) loadItemMap() WorkItemMap {
 
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			fmt.Printf("key=%s, value=%s\n", k, v)
-			currItem, err := decodeLabJSON(v)
+			currItem, err := decodeWorkItemJSON(v)
 			if err != nil {
 				log.Fatal(err)
 			}
-			labs = append(labs, currLab)
+			itemMap[currItem.ID] = *currItem
 		}
 
 		return nil
@@ -158,7 +158,7 @@ func (db *WorkDB) loadItemMap() WorkItemMap {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	return itemMap
 }
 
 func (wg *WorkGroup) encode() ([]byte, error) {
@@ -237,7 +237,7 @@ inactivateWorkItem sets the WorkItem to true
 in the workItemMap
 */
 func inactivateWorkItem(item WorkItem) {
-	workItemMap[item] = false
+	workItemMap[item.ID].Active = false
 }
 
 /*
@@ -254,11 +254,11 @@ func activateWorkItem(item WorkItem, request BlockRequest) {
 
 func chooseUniqueWorkItems(wgRequest WorkGroupRequest) ([]WorkItem, error) {
 	var workItems []WorkItem
-	for item, active := range workItemMap {
+	for id, item := range workItemMap {
 		if len(workItems) == wgRequest.NumItems {
 			break
 		}
-		if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
+		if !item.Active && !fileExistsInWorkItemArray(item.FileName, workItems) {
 			activateWorkItem(item, wgRequest.toBlockRequest())
 			workItems = append(workItems, item)
 		}
@@ -277,14 +277,14 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 
 func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
 	var workItem WorkItem
-	for item, active := range workItemMap {
+	for id, item := range workItemMap {
 
 		// if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
 		// 	activateWorkItem(item)
 		// 	workItems = append(workItems, item)
 		// }
 
-		if !active && blockAppropriateForUser(request) {
+		if !item.Active && blockAppropriateForUser(request) {
 			activateWorkItem(item, request)
 
 			workItem = item

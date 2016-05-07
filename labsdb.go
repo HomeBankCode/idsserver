@@ -8,8 +8,10 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const labsDBPath = "db/labs.db"
-const labsBucket = "Labs"
+const (
+	labsDBPath = "db/labs.db"
+	labsBucket = "Labs"
+)
 
 // Lab is a JSON serialization
 // struct representing lab metadata

@@ -40,7 +40,7 @@ the particular work item is active or not.
 Active means it's been sent out for coding
 and has not been submitted back yet.
 */
-type WorkItemMap map[WorkItem]bool
+type WorkItemMap map[string]WorkItem
 
 /*
 fillDataMap reads a path_manifest.csv file and
@@ -145,7 +145,7 @@ func (dataMap DataMap) partitionIntoWorkItemsMap() WorkItemMap {
 			currWorkItem.FileName = value.ClanFile
 			currWorkItem.BlockPath = blockValue
 
-			workItems[currWorkItem] = false
+			workItems[currWorkItem.ID] = currWorkItem
 
 		}
 	}
