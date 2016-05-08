@@ -31,7 +31,7 @@ ID's. All these ID's represent the blocks
 which have been sent out to be worked on.
 (i.e. active blocks)
 */
-type ActiveDataQueue map[string]bool
+type ActiveDataQueue map[string]WorkItem
 
 /*
 WorkItemMap is a map of WorkItem to bool.

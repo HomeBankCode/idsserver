@@ -36,13 +36,13 @@ NewWorkGroup returns a new WorkGroup containing
 be from distinct files and not currently being
 worked on (i.e. haven't been send to any coders yet)
 */
-func NewWorkGroup(wgRequest WorkGroupRequest) WorkGroup {
-	workItems, err := chooseUniqueWorkItems(wgRequest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return WorkGroup{WorkItems: workItems}
-}
+/*func NewWorkGroup(wgRequest WorkGroupRequest) WorkGroup {*/
+//workItems, err := chooseUniqueWorkItems(wgRequest)
+//if err != nil {
+//log.Fatal(err)
+//}
+//return WorkGroup{WorkItems: workItems}
+/*}*/
 
 /*
 WorkItem represents a work item at the granularity of
@@ -225,8 +225,8 @@ workItemIsActive checks to see if a WorkItem
 is part of the global activeWorkItems map.
 */
 func workItemIsActive(item WorkItem) bool {
-	_, exists := activeWorkItems[item.ID]
-	if exists {
+	value := activeWorkItems[item.ID]
+	if value.Active {
 		return true
 	}
 	return false
@@ -237,34 +237,48 @@ inactivateWorkItem sets the WorkItem to true
 in the workItemMap
 */
 func inactivateWorkItem(item WorkItem) {
-	workItemMap[item.ID].Active = false
+	value := workItemMap[item.ID]
+	value.Active = false
+	workItemMap[item.ID] = value
+
 }
 
 /*
-activateWorkItem sets the WorkItem to false
-in the workItemMap
+activateWorkItem sets the WorkItem active status to true
+in the workItemMap.
+
+Also adds the work item to the User's checked out WorkItem
+list
 */
 func activateWorkItem(item WorkItem, request BlockRequest) {
-	workItemMap[item] = true
+	value := workItemMap[item.ID]
+	value.Active = false
 
+	// update the workItemMap (in memory)
+	workItemMap[item.ID] = value
+
+	// update the WorkItem value on disk
+	workDB.persistWorkItemMap(value)
+
+	// update the User's WorkItem list on disk
 	user := labsDB.getUser(request.LabKey, request.Username)
-	user.WorkItems = append(user.WorkItems, item)
+	user.addWorkItem(item)
 	labsDB.setUser(user)
 }
 
-func chooseUniqueWorkItems(wgRequest WorkGroupRequest) ([]WorkItem, error) {
-	var workItems []WorkItem
-	for id, item := range workItemMap {
-		if len(workItems) == wgRequest.NumItems {
-			break
-		}
-		if !item.Active && !fileExistsInWorkItemArray(item.FileName, workItems) {
-			activateWorkItem(item, wgRequest.toBlockRequest())
-			workItems = append(workItems, item)
-		}
-	}
-	return workItems, nil
-}
+/*func chooseUniqueWorkItems(wgRequest WorkGroupRequest) ([]WorkItem, error) {*/
+//var workItems []WorkItem
+//for id, item := range workItemMap {
+//if len(workItems) == wgRequest.NumItems {
+//break
+//}
+//if !item.Active && !fileExistsInWorkItemArray(item.FileName, workItems) {
+//activateWorkItem(item, wgRequest.toBlockRequest())
+//workItems = append(workItems, item)
+//}
+//}
+//return workItems, nil
+/*}*/
 
 func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 	for _, item := range array {
@@ -277,7 +291,7 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 
 func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
 	var workItem WorkItem
-	for id, item := range workItemMap {
+	for _, item := range workItemMap {
 
 		// if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
 		// 	activateWorkItem(item)
@@ -295,6 +309,29 @@ func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
 
 func blockAppropriateForUser(request BlockRequest) bool {
 	return true
+}
+
+func persistActiveMapChange(item WorkItem) {
+
+}
+
+func (db *WorkDB) persistWorkItemMap(item WorkItem) {
+
+	// turn WorkItem into []byte
+	encodedItem, err := item.encode()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	updateErr := db.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(workBucket))
+		err := bucket.Put([]byte(item.ID), encodedItem)
+		return err
+	})
+
+	if updateErr != nil {
+		log.Fatal(err)
+	}
 }
 
 func Btoa(value bool) string {

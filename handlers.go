@@ -28,6 +28,10 @@ func (br *BlockRequest) userFromDB() User {
 	return user
 }
 
+type ShutdownRequest struct {
+	AdminKey string `json:"admin-key"`
+}
+
 /*
 WorkGroupRequest is a struct representing a request
 sent to the server asking for a new WorkGroup
@@ -79,13 +83,13 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
+func shutDownHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var workGroupRequest WorkGroupRequest
+	var shutdownReq ShutdownRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -94,15 +98,69 @@ func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &workGroupRequest)
+	json.Unmarshal(jsonDataFromHTTP, &shutdownReq)
 
-	fmt.Println(workGroupRequest)
+	fmt.Println(shutdownReq)
 
-	newWorkGroup := NewWorkGroup(workGroupRequest)
+	fmt.Println(shutdownReq.AdminKey)
 
-	fmt.Println(newWorkGroup)
-
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename='file.zip'")
+	if shutdownReq.AdminKey == mainConfig.AdminKey {
+		shutDown()
+	}
 
 }
+
+func labInfoHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var labInfoReq BlockRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &labInfoReq)
+
+	fmt.Println(labInfoReq)
+
+	lab := labsDB.getLab(labInfoReq.LabKey)
+
+	json.NewEncoder(w).Encode(lab)
+
+	//fmt.Println(labInfoReq.AdminKey)
+
+}
+
+/*func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {*/
+//err := r.ParseForm()
+//if err != nil {
+//log.Fatal(err)
+//}
+
+//var workGroupRequest WorkGroupRequest
+
+//jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+//if err != nil {
+//panic(err)
+//}
+
+//fmt.Println()
+//json.Unmarshal(jsonDataFromHTTP, &workGroupRequest)
+
+//fmt.Println(workGroupRequest)
+
+//newWorkGroup := NewWorkGroup(workGroupRequest)
+
+//fmt.Println(newWorkGroup)
+
+//w.Header().Set("Content-Type", "application/zip")
+//w.Header().Set("Content-Disposition", "attachment; filename='file.zip'")
+
+/*}*/

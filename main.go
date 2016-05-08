@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -22,16 +24,28 @@ var (
 	workDB *WorkDB
 
 	/*
-	 manifestFile is the path to the path_manifests.csv file.
-	 This contains the name of the clan files and the paths to
-	 all the blocks that are a part of them.
+		manifestFile is the path to the path_manifests.csv file.
+		This contains the name of the clan files and the paths to
+		all the blocks that are a part of them.
 
-	 format:
+		format:
 
-	 [clan_file, block_index, path_to_block]
+		[clan_file, block_index, path_to_block]
 
 	*/
 	manifestFile string
+
+	/*
+		configFile is the path to the main config file,
+		which has the server admin keys and other metadata
+	*/
+	configFile string
+
+	/*
+		mainConfig is the Config struct produced from reading
+		the configFile
+	*/
+	mainConfig Config
 
 	/*
 		dataMap is the global map of CLAN files to block paths
@@ -39,11 +53,11 @@ var (
 	dataMap DataMap
 
 	/*
-	   workItemMap is a map of WorkItem to bool.
-	   The boolean value represents whether or not
-	   the particular work item is active or not.
-	   Active means it's been sent out for coding
-	   and has not been submitted back yet.
+		workItemMap is a map of WorkItem to bool.
+		The boolean value represents whether or not
+		the particular work item is active or not.
+		Active means it's been sent out for coding
+		and has not been submitted back yet.
 	*/
 	workItemMap WorkItemMap
 
@@ -81,9 +95,37 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "this is the mainHandler")
 }
 
+type Config struct {
+	AdminKey string `json:"admin-key"`
+}
+
+func readConfigFile(path string) Config {
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var config Config
+	json.Unmarshal(file, &config)
+
+	return config
+}
+
+func shutDown() {
+
+}
+
 func main() {
 
-	manifestFile = os.Args[1]
+	configFile = os.Args[1]
+	manifestFile = os.Args[2]
+
+	mainConfig = readConfigFile(configFile)
+
+	fmt.Println("mainConfig: ")
+	fmt.Println(mainConfig)
+
+	return
 
 	dataMap := fillDataMap()
 
@@ -126,6 +168,9 @@ func main() {
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
+	http.HandleFunc("/getlabinfo/", labInfoHandler)
+	http.HandleFunc("/shutdown/", shutDownHandler)
+
 	http.ListenAndServe(":8080", nil)
 
 }

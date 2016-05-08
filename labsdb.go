@@ -27,6 +27,10 @@ type User struct {
 	WorkItems []WorkItem `json:"work-items"`
 }
 
+func (user *User) addWorkItem(item WorkItem) {
+	user.WorkItems = append(user.WorkItems, item)
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
