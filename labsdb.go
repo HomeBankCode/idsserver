@@ -59,13 +59,13 @@ type LabsDB struct {
 }
 
 // LoadLabsDB loads the global LabsDB
-func LoadLabsDB() (*LabsDB, error) {
-	labsDB := &LabsDB{db: new(bolt.DB)}
-	err := labsDB.Open()
+func LoadLabsDB() *LabsDB {
+	localLabsDB := &LabsDB{db: new(bolt.DB)}
+	err := localLabsDB.Open()
 	if err != nil {
-		return nil, err
+		return nil
 	}
-	return labsDB, nil
+	return localLabsDB
 }
 
 // Open opens the database and returns error on failure
@@ -97,7 +97,9 @@ func (db *LabsDB) Close() {
 }
 
 func (db *LabsDB) addUser(labKey, username string) {
-	newUser := User{Name: username, ParentLab: labKey}
+	newUser := User{Name: username,
+		ParentLab: labKey,
+		WorkItems: make([]WorkItem, 0)}
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {
@@ -173,7 +175,6 @@ func (db *LabsDB) getLab(labKey string) *Lab {
 
 func (db *LabsDB) setLab(labKey string, data *Lab) {
 	encodedLab, err := data.encode()
-	fmt.Println(encodedLab)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -187,7 +188,7 @@ func (db *LabsDB) setLab(labKey string, data *Lab) {
 }
 
 func (db *LabsDB) createLab(labKey string) {
-	newLab := Lab{Key: labKey}
+	newLab := Lab{Key: labKey, Users: make(map[string]User)}
 	encodedLab, err := newLab.encode()
 	if err != nil {
 		log.Fatal(err)
@@ -201,7 +202,7 @@ func (db *LabsDB) createLab(labKey string) {
 }
 
 func (db *LabsDB) createLabAddUser(labKey, username string) {
-	newLab := Lab{Key: labKey}
+	newLab := Lab{Key: labKey, Users: make(map[string]User)}
 	newUser := User{Name: username}
 	newLab.addUser(newUser)
 	encodedLab, err := newLab.encode()

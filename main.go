@@ -91,10 +91,6 @@ const (
 	numBlocksToSend = 5
 )
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "this is the mainHandler")
-}
-
 type Config struct {
 	AdminKey string `json:"admin-key"`
 }
@@ -120,12 +116,19 @@ func main() {
 	configFile = os.Args[1]
 	manifestFile = os.Args[2]
 
+	// Open the LabsDB
+	labsDB = LoadLabsDB()
+	defer labsDB.Close()
+
+	workDB = LoadWorkDB()
+	defer workDB.Close()
+
 	mainConfig = readConfigFile(configFile)
 
 	fmt.Println("mainConfig: ")
 	fmt.Println(mainConfig)
 
-	return
+	//	return
 
 	dataMap := fillDataMap()
 
@@ -140,35 +143,23 @@ func main() {
 	// 	fmt.Println(value)
 	// }
 
-	// Open the LabsDB
-	labsDB, err := LoadLabsDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer labsDB.Close()
+	labsDB.addUser("123456", "andrei")
+	labsDB.addUser("123457", "alice")
+	labsDB.addUser("123458", "bob")
+	labsDB.addUser("123459", "sally")
+	labsDB.addUser("123450", "joe")
 
-	workDB, err := LoadWorkDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer workDB.Close()
+	//	labs := labsDB.getAllLabs()
 
-	//
-	// labsDB.addUser("123456", "andrei")
-	// labsDB.addUser("123457", "alice")
-	// labsDB.addUser("123458", "bob")
-	// labsDB.addUser("123459", "sally")
-	// labsDB.addUser("123450", "joe")
-	//
-	// labs := labsDB.getAllLabs()
-	//
-	// for _, lab := range labs {
-	// 	fmt.Println(*lab)
-	// }
+	/* for _, lab := range labs {*/
+	//fmt.Println(*lab)
+	/*}*/
+
+	labsDB.addUser("1234567654321", "billybob")
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
-	http.HandleFunc("/getlabinfo/", labInfoHandler)
+	http.HandleFunc("/labinfo/", labInfoHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":8080", nil)

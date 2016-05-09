@@ -63,13 +63,13 @@ type WorkDB struct {
 }
 
 // LoadWorkDB loads the global workDB
-func LoadWorkDB() (*WorkDB, error) {
-	workDB := &WorkDB{db: new(bolt.DB)}
-	err := workDB.Open()
+func LoadWorkDB() *WorkDB {
+	localWorkDB := &WorkDB{db: new(bolt.DB)}
+	err := localWorkDB.Open()
 	if err != nil {
-		return nil, err
+		return nil
 	}
-	return workDB, nil
+	return localWorkDB
 }
 
 // Open opens the database and returns error on failure

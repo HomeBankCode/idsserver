@@ -9,6 +9,10 @@ import (
 	"path"
 )
 
+func mainHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "this is the mainHandler")
+}
+
 /*
 BlockRequest is a struct representing a request
 sent to the server asking for a single block (i.e. WorkItem)
@@ -127,10 +131,13 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &labInfoReq)
 
-	fmt.Println(labInfoReq)
+	//fmt.Printf("%+v", labInfoReq)
 
 	lab := labsDB.getLab(labInfoReq.LabKey)
 
+	fmt.Println(labsDB)
+
+	//	fmt.Println(lab)
 	json.NewEncoder(w).Encode(lab)
 
 	//fmt.Println(labInfoReq.AdminKey)
