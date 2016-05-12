@@ -128,9 +128,7 @@ func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 		if updateErr != nil {
 			log.Fatal(updateErr)
 		}
-
 	}
-
 }
 
 /*
@@ -196,36 +194,12 @@ func decodeWorkGroupJSON(data []byte) (*WorkGroup, error) {
 	return wg, nil
 }
 
-/*func (db *WorkDB) getAllWorkGroups() []*WorkGroup {*/
-//var workGroups []*WorkGroup
-//err := db.db.View(func(tx *bolt.Tx) error {
-//bucket := tx.Bucket([]byte(workBucket))
-
-//cursor := bucket.Cursor()
-
-//for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-//fmt.Printf("key=%s, value=%s\n", k, v)
-//currGroup, err := decodeWorkJSON(v)
-//if err != nil {
-//log.Fatal(err)
-//}
-//workGroups = append(workGroups, currGroup)
-//}
-
-//return nil
-//})
-//if err != nil {
-//log.Fatal(err)
-//}
-//return workGroups
-/*}*/
-
 /*
 workItemIsActive checks to see if a WorkItem
 is part of the global activeWorkItems map.
 */
 func workItemIsActive(item WorkItem) bool {
-	value := activeWorkItems[item.ID]
+	value := workItemMap[item.ID]
 	if value.Active {
 		return true
 	}
@@ -250,7 +224,7 @@ in the workItemMap.
 Also adds the work item to the User's checked out WorkItem
 list
 */
-func activateWorkItem(item WorkItem, request BlockRequest) {
+func activateWorkItem(item WorkItem, request IDSRequest) {
 	value := workItemMap[item.ID]
 	value.Active = false
 
@@ -258,27 +232,13 @@ func activateWorkItem(item WorkItem, request BlockRequest) {
 	workItemMap[item.ID] = value
 
 	// update the WorkItem value on disk
-	workDB.persistWorkItemMap(value)
+	workDB.persistWorkItem(value)
 
 	// update the User's WorkItem list on disk
 	user := labsDB.getUser(request.LabKey, request.Username)
 	user.addWorkItem(item)
 	labsDB.setUser(user)
 }
-
-/*func chooseUniqueWorkItems(wgRequest WorkGroupRequest) ([]WorkItem, error) {*/
-//var workItems []WorkItem
-//for id, item := range workItemMap {
-//if len(workItems) == wgRequest.NumItems {
-//break
-//}
-//if !item.Active && !fileExistsInWorkItemArray(item.FileName, workItems) {
-//activateWorkItem(item, wgRequest.toBlockRequest())
-//workItems = append(workItems, item)
-//}
-//}
-//return workItems, nil
-/*}*/
 
 func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 	for _, item := range array {
@@ -289,14 +249,9 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 	return false
 }
 
-func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
+func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
 	for _, item := range workItemMap {
-
-		// if !active && !fileExistsInWorkItemArray(item.FileName, workItems) {
-		// 	activateWorkItem(item)
-		// 	workItems = append(workItems, item)
-		// }
 
 		if !item.Active && blockAppropriateForUser(request) {
 			activateWorkItem(item, request)
@@ -307,7 +262,7 @@ func chooseUniqueWorkItem(request BlockRequest) (WorkItem, error) {
 	return workItem, nil
 }
 
-func blockAppropriateForUser(request BlockRequest) bool {
+func blockAppropriateForUser(request IDSRequest) bool {
 	return true
 }
 
@@ -315,7 +270,39 @@ func persistActiveMapChange(item WorkItem) {
 
 }
 
-func (db *WorkDB) persistWorkItemMap(item WorkItem) {
+func (db *WorkDB) compareWithWorkItemMap(itemMap WorkItemMap) []WorkItem {
+	// missmatched WorkItems
+	var diffs []WorkItem
+
+	for key, value := range itemMap {
+		var itemBytes []byte
+		db.db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(workBucket))
+			itemBytes = bucket.Get([]byte(key))
+
+			workItem, err := decodeWorkItemJSON(itemBytes)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			switch {
+			case workItem.Block != value.Block:
+				diffs = append(diffs, value)
+				break
+			case workItem.BlockPath != value.BlockPath:
+				diffs = append(diffs, value)
+				break
+			case workItem.FileName != value.FileName:
+				diffs = append(diffs, value)
+				break
+			}
+			return nil
+		})
+	}
+	return diffs
+}
+
+func (db *WorkDB) persistWorkItem(item WorkItem) {
 
 	// turn WorkItem into []byte
 	encodedItem, err := item.encode()
@@ -331,5 +318,11 @@ func (db *WorkDB) persistWorkItemMap(item WorkItem) {
 
 	if updateErr != nil {
 		log.Fatal(updateErr)
+	}
+}
+
+func (db *WorkDB) persistWorkItemMap(itemMap WorkItemMap) {
+	for _, item := range itemMap {
+		db.persistWorkItem(item)
 	}
 }

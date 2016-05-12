@@ -98,7 +98,28 @@ It's loaded from the config.json file read in as argument
 from the command line upon starting the server.
 */
 type Config struct {
-	AdminKey string `json:"admin-key"`
+	AdminKey      string `json:"admin-key"`
+	WorkMapLoaded bool   `json:"work-map-loaded"`
+}
+
+func (conf *Config) encode() ([]byte, error) {
+	enc, err := json.MarshalIndent(conf, "", " ")
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
+}
+
+func (conf *Config) writeFile() {
+	fmt.Println("tried to update the config file")
+	encodedConf, err := conf.encode()
+	if err != nil {
+		log.Fatal(err)
+	}
+	writeErr := ioutil.WriteFile(configFile, encodedConf, 0644)
+	if err != nil {
+		log.Fatal(writeErr)
+	}
 }
 
 func readConfigFile(path string) Config {
@@ -138,9 +159,19 @@ func main() {
 
 	dataMap := fillDataMap()
 
-	workItemMap = dataMap.partitionIntoWorkItemsMap()
+	/*
+		get the WorkItemMap, either from the dataMap,
+		or from the workDB on disk.
+	*/
+	if !mainConfig.WorkMapLoaded {
+		workItemMap = dataMap.partitionIntoWorkItemsMap()
+		workDB.persistWorkItemMap(workItemMap)
+		mainConfig.WorkMapLoaded = true
+		mainConfig.writeFile()
+	} else {
+		workItemMap = workDB.loadItemMap()
+	}
 
-	//fmt.Println("# of work items: ", len(workItems))
 	fmt.Println("# of work items map: ", len(workItemMap))
 
 	// for key, value := range workItemMap {
@@ -149,28 +180,30 @@ func main() {
 	// 	fmt.Println(value)
 	// }
 
-	labsDB.addUser("123456", "Bergelson Lab", "andrei")
-	labsDB.addUser("123456", "Bergelson Lab", "shannon")
-	labsDB.addUser("123457", "Einstein Lab", "alice")
-	labsDB.addUser("123458", "Fermi Lab", "bob")
-	labsDB.addUser("123459", "Soderstrom Lab", "sally")
-	labsDB.addUser("123450", "Marr Lab", "joe")
-	labsDB.addUser("123450", "Marr Lab", "fred")
-	labsDB.addUser("123450", "Marr Lab", "jane")
-	labsDB.addUser("123450", "Marr Lab", "bill")
-
+	/*
+		labsDB.addUser("123456", "Bergelson Lab", "andrei")
+		labsDB.addUser("123456", "Bergelson Lab", "shannon")
+		labsDB.addUser("123457", "Einstein Lab", "alice")
+		labsDB.addUser("123458", "Fermi Lab", "bob")
+		labsDB.addUser("123459", "Soderstrom Lab", "sally")
+		labsDB.addUser("123450", "Marr Lab", "joe")
+		labsDB.addUser("123450", "Marr Lab", "fred")
+		labsDB.addUser("123450", "Marr Lab", "jane")
+		labsDB.addUser("123450", "Marr Lab", "bill")
+		labsDB.addUser("1234567654321", "Billy's lab", "billybob")
+	*/
 	labs := labsDB.getAllLabs()
 
+	fmt.Println("Printing all the labs: ")
 	for _, lab := range labs {
 		fmt.Println(*lab)
 	}
-
-	labsDB.addUser("1234567654321", "Billy's lab", "billybob")
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
 	http.HandleFunc("/labinfo/", labInfoHandler)
 	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
+	http.HandleFunc("/adduser/", addUserHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":8080", nil)

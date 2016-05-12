@@ -34,11 +34,7 @@ which have been sent out to be worked on.
 type ActiveDataQueue map[string]WorkItem
 
 /*
-WorkItemMap is a map of WorkItem to bool.
-The boolean value represents whether or not
-the particular work item is active or not.
-Active means it's been sent out for coding
-and has not been submitted back yet.
+WorkItemMap is a map of WorkItem ID's to WorkItems.
 */
 type WorkItemMap map[string]WorkItem
 

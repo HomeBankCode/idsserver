@@ -14,20 +14,21 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-BlockRequest is a struct representing a request
+IDSRequest is a struct representing a request
 sent to the server asking for a single block (i.e. WorkItem)
 */
-type BlockRequest struct {
+type IDSRequest struct {
 	LabKey   string `json:"lab-key"`
+	LabName  string `json:"lab-name"`
 	Username string `json:"username"`
 	//NumItems int    `json:"num-items"`
 }
 
-func (br *BlockRequest) userID() string {
+func (br *IDSRequest) userID() string {
 	return br.LabKey + ":::" + br.Username
 }
 
-func (br *BlockRequest) userFromDB() User {
+func (br *IDSRequest) userFromDB() User {
 	user := labsDB.getUser(br.LabKey, br.Username)
 	return user
 }
@@ -51,8 +52,8 @@ type WorkGroupRequest struct {
 	NumItems int    `json:"num-items"`
 }
 
-func (wgr *WorkGroupRequest) toBlockRequest() BlockRequest {
-	return BlockRequest{LabKey: wgr.LabKey, Username: wgr.Username}
+func (wgr *WorkGroupRequest) toIDSRequest() IDSRequest {
+	return IDSRequest{LabKey: wgr.LabKey, Username: wgr.Username}
 }
 
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +62,7 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var blockRequest BlockRequest
+	var blockRequest IDSRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -125,7 +126,7 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var labInfoReq BlockRequest
+	var labInfoReq IDSRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -150,7 +151,7 @@ func allLabInfoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var labInfoReq BlockRequest
+	var labInfoReq IDSRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -169,30 +170,24 @@ func allLabInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-/*func getWorkGroupHandler(w http.ResponseWriter, r *http.Request) {*/
-//err := r.ParseForm()
-//if err != nil {
-//log.Fatal(err)
-//}
+func addUserHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-//var workGroupRequest WorkGroupRequest
+	var addUserReq IDSRequest
 
-//jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
-//if err != nil {
-//panic(err)
-//}
+	if err != nil {
+		panic(err)
+	}
 
-//fmt.Println()
-//json.Unmarshal(jsonDataFromHTTP, &workGroupRequest)
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &addUserReq)
+	fmt.Println(addUserReq)
 
-//fmt.Println(workGroupRequest)
+	labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
 
-//newWorkGroup := NewWorkGroup(workGroupRequest)
-
-//fmt.Println(newWorkGroup)
-
-//w.Header().Set("Content-Type", "application/zip")
-//w.Header().Set("Content-Disposition", "attachment; filename='file.zip'")
-
-/*}*/
+}

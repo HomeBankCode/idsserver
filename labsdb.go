@@ -23,9 +23,10 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name      string     `json:"name"`
-	ParentLab string     `json:"parent-lab"`
-	WorkItems []WorkItem `json:"work-items"`
+	Name          string     `json:"name"`
+	ParentLab     string     `json:"parent-lab"`
+	WorkItems     []WorkItem `json:"work-items"`
+	PastWorkItems []WorkItem `json:"finished-work-items"`
 }
 
 func (user *User) addWorkItem(item WorkItem) {
