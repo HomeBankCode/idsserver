@@ -135,7 +135,7 @@ func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 loadItemMap reads the WorkItemMap from the workDB.
 */
 func (db *WorkDB) loadItemMap() WorkItemMap {
-	var itemMap WorkItemMap
+	var itemMap = make(WorkItemMap)
 
 	err := db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(workBucket))
@@ -143,6 +143,7 @@ func (db *WorkDB) loadItemMap() WorkItemMap {
 		cursor := bucket.Cursor()
 
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			fmt.Println("\nWorkItem from DB:")
 			fmt.Printf("key=%s, value=%s\n", k, v)
 			currItem, err := decodeWorkItemJSON(v)
 			if err != nil {

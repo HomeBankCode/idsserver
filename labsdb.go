@@ -25,7 +25,7 @@ type Lab struct {
 type User struct {
 	Name          string     `json:"name"`
 	ParentLab     string     `json:"parent-lab"`
-	WorkItems     []WorkItem `json:"work-items"`
+	WorkItems     []WorkItem `json:"active-work-items"`
 	PastWorkItems []WorkItem `json:"finished-work-items"`
 }
 

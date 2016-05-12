@@ -24,6 +24,17 @@ type IDSRequest struct {
 	//NumItems int    `json:"num-items"`
 }
 
+/*
+SubmissionRequest is a struct representing the
+classifications of a block being sent back to the
+server
+*/
+type SubmissionRequest struct {
+	Identity   map[string]string `json:"identity"`
+	WorkItemID string            `json:"work-item-id"`
+	BlockClips [][]string        `json:"clips"`
+}
+
 func (br *IDSRequest) userID() string {
 	return br.LabKey + ":::" + br.Username
 }
@@ -187,6 +198,28 @@ func addUserHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &addUserReq)
 	fmt.Println(addUserReq)
+
+	labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
+
+}
+
+func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var submitReq SubmissionRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &submitReq)
+	fmt.Println(submitReq)
 
 	labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
 
