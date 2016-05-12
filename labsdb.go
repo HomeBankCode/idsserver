@@ -16,8 +16,9 @@ const (
 // Lab is a JSON serialization
 // struct representing lab metadata
 type Lab struct {
-	Key   string          `json:"key"`
-	Users map[string]User `json:"users"`
+	Key     string          `json:"key"`
+	LabName string          `json:"lab-name"`
+	Users   map[string]User `json:"users"`
 }
 
 // User is a lab user
@@ -96,7 +97,7 @@ func (db *LabsDB) Close() {
 	db.db.Close()
 }
 
-func (db *LabsDB) addUser(labKey, username string) {
+func (db *LabsDB) addUser(labKey, labName, username string) {
 	newUser := User{Name: username,
 		ParentLab: labKey,
 		WorkItems: make([]WorkItem, 0)}
@@ -109,7 +110,7 @@ func (db *LabsDB) addUser(labKey, username string) {
 		lab.addUser(newUser)
 		db.setLab(labKey, lab)
 	} else {
-		db.createLabAddUser(labKey, username)
+		db.createLabAddUser(labKey, labName, username)
 	}
 }
 
@@ -187,8 +188,10 @@ func (db *LabsDB) setLab(labKey string, data *Lab) {
 	})
 }
 
-func (db *LabsDB) createLab(labKey string) {
-	newLab := Lab{Key: labKey, Users: make(map[string]User)}
+func (db *LabsDB) createLab(labKey, labName string) {
+	newLab := Lab{Key: labKey,
+		LabName: labName,
+		Users:   make(map[string]User)}
 	encodedLab, err := newLab.encode()
 	if err != nil {
 		log.Fatal(err)
@@ -201,8 +204,11 @@ func (db *LabsDB) createLab(labKey string) {
 	})
 }
 
-func (db *LabsDB) createLabAddUser(labKey, username string) {
-	newLab := Lab{Key: labKey, Users: make(map[string]User)}
+func (db *LabsDB) createLabAddUser(labKey, labName, username string) {
+	newLab := Lab{Key: labKey,
+		LabName: labName,
+		Users:   make(map[string]User)}
+
 	newUser := User{Name: username}
 	newLab.addUser(newUser)
 	encodedLab, err := newLab.encode()

@@ -32,6 +32,11 @@ func (br *BlockRequest) userFromDB() User {
 	return user
 }
 
+/*
+ShutdownRequest is a JSON encoded request to
+shutdown the server. This will tell the server
+to persist the current state to disk and shut down
+*/
 type ShutdownRequest struct {
 	AdminKey string `json:"admin-key"`
 }
@@ -131,16 +136,36 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &labInfoReq)
 
-	//fmt.Printf("%+v", labInfoReq)
-
 	lab := labsDB.getLab(labInfoReq.LabKey)
 
 	fmt.Println(labsDB)
 
-	//	fmt.Println(lab)
 	json.NewEncoder(w).Encode(lab)
 
-	//fmt.Println(labInfoReq.AdminKey)
+}
+
+func allLabInfoHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var labInfoReq BlockRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &labInfoReq)
+
+	labs := labsDB.getAllLabs()
+
+	fmt.Println(labsDB)
+
+	json.NewEncoder(w).Encode(labs)
 
 }
 

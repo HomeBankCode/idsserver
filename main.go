@@ -91,6 +91,12 @@ const (
 	numBlocksToSend = 5
 )
 
+/*
+Config is a struct representing metadata about
+the configuration state of the server upon startup.
+It's loaded from the config.json file read in as argument
+from the command line upon starting the server.
+*/
 type Config struct {
 	AdminKey string `json:"admin-key"`
 }
@@ -143,23 +149,28 @@ func main() {
 	// 	fmt.Println(value)
 	// }
 
-	labsDB.addUser("123456", "andrei")
-	labsDB.addUser("123457", "alice")
-	labsDB.addUser("123458", "bob")
-	labsDB.addUser("123459", "sally")
-	labsDB.addUser("123450", "joe")
+	labsDB.addUser("123456", "Bergelson Lab", "andrei")
+	labsDB.addUser("123456", "Bergelson Lab", "shannon")
+	labsDB.addUser("123457", "Einstein Lab", "alice")
+	labsDB.addUser("123458", "Fermi Lab", "bob")
+	labsDB.addUser("123459", "Soderstrom Lab", "sally")
+	labsDB.addUser("123450", "Marr Lab", "joe")
+	labsDB.addUser("123450", "Marr Lab", "fred")
+	labsDB.addUser("123450", "Marr Lab", "jane")
+	labsDB.addUser("123450", "Marr Lab", "bill")
 
-	//	labs := labsDB.getAllLabs()
+	labs := labsDB.getAllLabs()
 
-	/* for _, lab := range labs {*/
-	//fmt.Println(*lab)
-	/*}*/
+	for _, lab := range labs {
+		fmt.Println(*lab)
+	}
 
-	labsDB.addUser("1234567654321", "billybob")
+	labsDB.addUser("1234567654321", "Billy's lab", "billybob")
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
 	http.HandleFunc("/labinfo/", labInfoHandler)
+	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":8080", nil)

@@ -114,9 +114,9 @@ func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 	for id, item := range itemMap {
 
 		// turn WorkItem into []byte
-		encodedItem, err := item.encode()
-		if err != nil {
-			log.Fatal(err)
+		encodedItem, encodeErr := item.encode()
+		if encodeErr != nil {
+			log.Fatal(encodeErr)
 		}
 
 		updateErr := db.db.Update(func(tx *bolt.Tx) error {
@@ -126,7 +126,7 @@ func (db *WorkDB) fillWithItemMap(itemMap WorkItemMap) {
 		})
 
 		if updateErr != nil {
-			log.Fatal(err)
+			log.Fatal(updateErr)
 		}
 
 	}
@@ -330,14 +330,6 @@ func (db *WorkDB) persistWorkItemMap(item WorkItem) {
 	})
 
 	if updateErr != nil {
-		log.Fatal(err)
-	}
-}
-
-func Btoa(value bool) string {
-	if value {
-		return "true"
-	} else {
-		return "false"
+		log.Fatal(updateErr)
 	}
 }
