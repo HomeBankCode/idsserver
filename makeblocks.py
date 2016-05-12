@@ -123,7 +123,7 @@ class Parser:
             pipe = sp.Popen(command, stdout=sp.PIPE, bufsize=10**8)
             out, err = pipe.communicate()
 
-        self.output_classifications()
+        self.output_classifications(block.index)
 
     def slice_all_man_fan_blocks(self):
         for block in self.clip_blocks:
@@ -250,7 +250,7 @@ class Parser:
 
         return [start, end, x_diff]
 
-    def output_classifications(self):
+    def output_classifications(self, block_num):
 
         #[date, coder, clanfile, audiofile, block, timestamp, clip, tier, label, multi-tier]
 
@@ -260,20 +260,21 @@ class Parser:
                              "timestamp", "clip", "tier", "label", "multi-tier-parent", "dont_share"])
 
             for block in self.clip_blocks:
-                dont_share = False
-                if block.dont_share:
-                    dont_share = True
-                multitier_parent = None
-                for clip in block.clips:
-                    if clip.multiline:
-                        multitier_parent = clip.multi_tier_parent
-                    else:
-                        multitier_parent = "N"
+                if block.index == block_num:
+                    dont_share = False
+                    if block.dont_share:
+                        dont_share = True
+                    multitier_parent = None
+                    for clip in block.clips:
+                        if clip.multiline:
+                            multitier_parent = clip.multi_tier_parent
+                        else:
+                            multitier_parent = "N"
 
-                    writer.writerow([clip.label_date, clip.coder, clip.clan_file,
-                                     clip.parent_audio_path, clip.block_index,
-                                     clip.timestamp, clip.clip_index,clip.clip_tier,
-                                     clip.classification, multitier_parent, dont_share])
+                        writer.writerow([clip.label_date, clip.coder, clip.clan_file,
+                                         clip.parent_audio_path, clip.block_index,
+                                         clip.timestamp, clip.clip_index,clip.clip_tier,
+                                         clip.classification, multitier_parent, dont_share])
 def check_dir(path):
     files = os.listdir(path)
 

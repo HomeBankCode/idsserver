@@ -221,6 +221,6 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(jsonDataFromHTTP, &submitReq)
 	fmt.Println(submitReq)
 
-	labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
+	//labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
 
 }
