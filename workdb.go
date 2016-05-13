@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -252,18 +253,30 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 
 func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
+	user := labsDB.getUser(request.LabKey, request.Username)
 	for _, item := range workItemMap {
 
-		if !item.Active && blockAppropriateForUser(request) {
+		if !item.Active && blockAppropriateForUser(item, request, user) {
 			activateWorkItem(item, request)
-
-			workItem = item
+			fmt.Println("Selected Item: ")
+			fmt.Println(item)
+			return item, nil
 		}
 	}
-	return workItem, nil
+	fmt.Println("\nRan out of unique items for this user")
+	return workItem, errors.New("Ran out of unique items")
 }
 
-func blockAppropriateForUser(request IDSRequest) bool {
+func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool {
+	/*
+		Check if user already has a block
+		from the same file
+	*/
+	for _, userItem := range user.WorkItems {
+		if userItem.FileName == item.FileName {
+			return false
+		}
+	}
 	return true
 }
 

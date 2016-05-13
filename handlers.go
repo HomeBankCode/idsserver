@@ -89,11 +89,17 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(blockRequest.userID())
 
 	workItem, err := chooseUniqueWorkItem(blockRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("	HTTP status code returned"))
+		return
+	}
 
 	blockPath := workItem.BlockPath
 	blockName := path.Base(blockPath)
+	filename := path.Join(workItem.FileName, blockName)
 
-	dispositionString := "attachment; filename=" + blockName
+	dispositionString := "attachment; filename=" + filename
 
 	fmt.Println(workItem)
 

@@ -169,6 +169,7 @@ func (db *LabsDB) getLab(labKey string) *Lab {
 	})
 
 	labData, err := decodeLabJSON(lab)
+	fmt.Println(labData)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -250,7 +251,7 @@ func (db *LabsDB) getAllLabs() []*Lab {
 
 func (db *LabsDB) getUser(labKey, username string) User {
 
-	var lab = db.getLab(labKey)
+	lab := db.getLab(labKey)
 	user := lab.Users[username]
 	return user
 
