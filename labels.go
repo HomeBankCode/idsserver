@@ -19,6 +19,27 @@ type LabelsDB struct {
 	db *bolt.DB
 }
 
+type Block struct {
+	ClanFile  string
+	Index     int
+	Clips     []Clip
+	FanOrMan  bool
+	DontShare bool
+}
+
+type Clip struct {
+	Index           int
+	Tier            string
+	Multiline       bool
+	MultiTierParent string
+	StartTime       string
+	OffsetTime      string
+	TimeStamp       string
+	Classification  string
+	LabelDate       string
+	Coder           string
+}
+
 /*
 WorkItemLabels represents the classification results
 that are submitted by the users of IDSLabel
@@ -59,4 +80,11 @@ func (db *LabelsDB) Open() error {
 	})
 
 	return err
+}
+
+func submissionParse(submission SubmissionRequest) []Block {
+	for blockName, block := range submission {
+
+	}
+
 }

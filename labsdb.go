@@ -169,7 +169,7 @@ func (db *LabsDB) getLab(labKey string) *Lab {
 	})
 
 	labData, err := decodeLabJSON(lab)
-	fmt.Println(labData)
+	//fmt.Println(labData)
 	if err != nil {
 		log.Fatal(err)
 	}

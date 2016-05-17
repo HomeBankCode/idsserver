@@ -167,7 +167,7 @@ func main() {
 		workItemMap = dataMap.partitionIntoWorkItemsMap()
 		workDB.persistWorkItemMap(workItemMap)
 		mainConfig.WorkMapLoaded = true
-		mainConfig.writeFile()
+		//mainConfig.writeFile()
 	} else {
 		workItemMap = workDB.loadItemMap()
 	}
@@ -192,19 +192,19 @@ func main() {
 		labsDB.addUser("123450", "Marr Lab", "bill")
 		labsDB.addUser("1234567654321", "Billy's lab", "billybob")
 	*/
-	labs := labsDB.getAllLabs()
+	//labs := labsDB.getAllLabs()
 
-	fmt.Println("Printing all the labs: ")
-	for _, lab := range labs {
-		fmt.Println(*lab)
-	}
+	// fmt.Println("Printing all the labs: ")
+	// for _, lab := range labs {
+	// 	fmt.Println(*lab)
+	// }
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
 	http.HandleFunc("/labinfo/", labInfoHandler)
 	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
 	http.HandleFunc("/adduser/", addUserHandler)
-	http.HandleFunc("/submitlabels", submitLabelsHandler)
+	http.HandleFunc("/submitlabels/", submitLabelsHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":8080", nil)

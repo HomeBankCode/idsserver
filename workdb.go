@@ -228,7 +228,7 @@ list
 */
 func activateWorkItem(item WorkItem, request IDSRequest) {
 	value := workItemMap[item.ID]
-	value.Active = false
+	value.Active = true
 
 	// update the workItemMap (in memory)
 	workItemMap[item.ID] = value
@@ -238,7 +238,7 @@ func activateWorkItem(item WorkItem, request IDSRequest) {
 
 	// update the User's WorkItem list on disk
 	user := labsDB.getUser(request.LabKey, request.Username)
-	user.addWorkItem(item)
+	user.addWorkItem(workItemMap[item.ID])
 	labsDB.setUser(user)
 }
 
