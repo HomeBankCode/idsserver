@@ -29,14 +29,9 @@ SubmissionRequest is a struct representing the
 classifications of a block being sent back to the
 server
 */
-// type SubmissionRequest struct {
-// 	Identity IDSRequest                     `json:"identity"`
-// 	Blocks   map[string][]map[string]string `json:"blocks"`
-// }
-
-// SubmissionRequest is where labels submissions are
-// unmarshalled into (json)
-type SubmissionRequest map[string]interface{}
+type SubmissionRequest struct {
+	Block Block `json:"block"`
+}
 
 func (br *IDSRequest) userID() string {
 	return br.LabKey + ":::" + br.Username
@@ -220,7 +215,7 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("got a submission request")
 	//submitReq := SubmissionRequest{Blocks: make(map[string][]map[string]string)}
-	var submitReq SubmissionRequest
+	var block Block
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
 	fmt.Println()
@@ -230,7 +225,10 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &submitReq)
-	//fmt.Println(submitReq)
+	json.Unmarshal(jsonDataFromHTTP, &block)
+	//blocks := submissionParse(submitReq)
+
+	//fmt.Println(blocks)
+	fmt.Println(block)
 
 }
