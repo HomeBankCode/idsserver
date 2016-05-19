@@ -17,6 +17,14 @@ const (
 	workBucket = "Work"
 )
 
+var (
+	/*
+		ErrRanOutOfItems means chooseUniqueWorkItem can't
+		find a suitable WorkItem for this particular user
+	*/
+	ErrRanOutOfItems = errors.New("Ran out of unique items")
+)
+
 // WorkQueue is the list of WorkGroups
 type WorkQueue struct {
 	WorkGroups []WorkGroup `json:"work-groups"`
@@ -237,7 +245,10 @@ func activateWorkItem(item WorkItem, request IDSRequest) {
 	workDB.persistWorkItem(value)
 
 	// update the User's WorkItem list on disk
-	user := labsDB.getUser(request.LabKey, request.Username)
+	user, getUsrError := labsDB.getUser(request.LabKey, request.Username)
+	if getUsrError != nil {
+		return
+	}
 	user.addWorkItem(workItemMap[item.ID])
 	labsDB.setUser(user)
 }
@@ -253,7 +264,10 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 
 func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
-	user := labsDB.getUser(request.LabKey, request.Username)
+	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
+	if getUsrErr != nil {
+		return WorkItem{}, ErrUserDoesntExist
+	}
 	for _, item := range workItemMap {
 
 		if !item.Active && blockAppropriateForUser(item, request, user) {
@@ -264,7 +278,7 @@ func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 		}
 	}
 	fmt.Println("\nRan out of unique items for this user")
-	return workItem, errors.New("Ran out of unique items")
+	return workItem, ErrRanOutOfItems
 }
 
 func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool {

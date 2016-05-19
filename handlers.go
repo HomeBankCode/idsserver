@@ -37,9 +37,9 @@ func (br *IDSRequest) userID() string {
 	return br.LabKey + ":::" + br.Username
 }
 
-func (br *IDSRequest) userFromDB() User {
-	user := labsDB.getUser(br.LabKey, br.Username)
-	return user
+func (br *IDSRequest) userFromDB() (User, error) {
+	user, err := labsDB.getUser(br.LabKey, br.Username)
+	return user, err
 }
 
 /*
@@ -152,7 +152,11 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &labInfoReq)
 
-	lab := labsDB.getLab(labInfoReq.LabKey)
+	lab, getLabErr := labsDB.getLab(labInfoReq.LabKey)
+	if getLabErr != nil {
+		http.Error(w, getLabErr.Error(), 500)
+		return
+	}
 
 	fmt.Println(labsDB)
 

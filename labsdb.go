@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -11,6 +12,14 @@ import (
 const (
 	labsDBPath = "db/labs.db"
 	labsBucket = "Labs"
+)
+
+var (
+	// ErrUserDoesntExist means User doesn't exist in the LabsDB
+	ErrUserDoesntExist = errors.New("User doesn't exist")
+
+	// ErrLabDoesntExist means Lab doesn't exist in the LabsDB
+	ErrLabDoesntExist = errors.New("Lab doesn't exist")
 )
 
 // Lab is a JSON serialization
@@ -107,7 +116,7 @@ func (db *LabsDB) addUser(labKey, labName, username string) {
 		if db.userExists(labKey, username) {
 			return
 		}
-		lab := db.getLab(labKey)
+		lab, _ := db.getLab(labKey)
 		lab.addUser(newUser)
 		db.setLab(labKey, lab)
 	} else {
@@ -160,7 +169,10 @@ func (db *LabsDB) userExists(labKey, username string) bool {
 	return userExists
 }
 
-func (db *LabsDB) getLab(labKey string) *Lab {
+func (db *LabsDB) getLab(labKey string) (*Lab, error) {
+	if !db.labExists(labKey) {
+		return nil, ErrLabDoesntExist
+	}
 	var lab []byte
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(labsBucket))
@@ -173,7 +185,7 @@ func (db *LabsDB) getLab(labKey string) *Lab {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return labData
+	return labData, nil
 }
 
 func (db *LabsDB) setLab(labKey string, data *Lab) {
@@ -249,17 +261,25 @@ func (db *LabsDB) getAllLabs() []*Lab {
 	return labs
 }
 
-func (db *LabsDB) getUser(labKey, username string) User {
+func (db *LabsDB) getUser(labKey, username string) (User, error) {
+	lab, err := db.getLab(labKey)
+	if err != nil {
+		return User{}, err
+	}
 
-	lab := db.getLab(labKey)
-	user := lab.Users[username]
-	return user
-
+	user, exists := lab.Users[username]
+	if !exists {
+		return user, ErrUserDoesntExist
+	}
+	return user, nil
 }
 
-func (db *LabsDB) setUser(user User) {
-	var lab = db.getLab(user.ParentLab)
+func (db *LabsDB) setUser(user User) error {
+	lab, getLabErr := db.getLab(user.ParentLab)
+	if getLabErr != nil {
+		return ErrLabDoesntExist
+	}
 	lab.Users[user.Name] = user
 	db.setLab(lab.Key, lab)
-
+	return nil
 }
