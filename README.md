@@ -11,5 +11,5 @@ $: python makeblocks.py [data_dir] [output_data_dir]
 #### idsserver
 
 ```
-$: ./idsserver [path/to/path_manifest.csv]
+$: ./idsserver  [config_file.json] [path/to/path_manifest.csv]
 ```
