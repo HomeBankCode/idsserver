@@ -32,14 +32,28 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name          string     `json:"name"`
-	ParentLab     string     `json:"parent-lab"`
-	WorkItems     []WorkItem `json:"active-work-items"`
-	PastWorkItems []WorkItem `json:"finished-work-items"`
+	Name            string     `json:"name"`
+	ParentLab       string     `json:"parent-lab"`
+	ActiveWorkItems []WorkItem `json:"active-work-items"`
+	PastWorkItems   []WorkItem `json:"finished-work-items"`
 }
 
 func (user *User) addWorkItem(item WorkItem) {
-	user.WorkItems = append(user.WorkItems, item)
+	user.ActiveWorkItems = append(user.ActiveWorkItems, item)
+}
+
+func (user *User) inactivateWorkItem(item WorkItem) error {
+	var newActiveItems []WorkItem
+	foundItem := false
+
+	for index, element := range user.ActiveWorkItems {
+		if item.ID == element.ID {
+			foundItem = true
+		} else {
+			newActiveItems = append(newActiveItems, element)
+		}
+	}
+	user.PastWorkItems = append(user.PastWorkItems, item)
 }
 
 func (lab *Lab) encode() ([]byte, error) {
@@ -109,8 +123,8 @@ func (db *LabsDB) Close() {
 
 func (db *LabsDB) addUser(labKey, labName, username string) {
 	newUser := User{Name: username,
-		ParentLab: labKey,
-		WorkItems: make([]WorkItem, 0)}
+		ParentLab:       labKey,
+		ActiveWorkItems: make([]WorkItem, 0)}
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {

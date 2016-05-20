@@ -88,8 +88,7 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 	workItem, err := chooseUniqueWorkItem(blockRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
-		w.Write([]byte("	HTTP status code returned"))
+		http.Error(w, err.Error(), 404)
 		return
 	}
 
@@ -232,7 +231,17 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(jsonDataFromHTTP, &block)
 	//blocks := submissionParse(submitReq)
 
-	//fmt.Println(blocks)
-	fmt.Println(block)
+	addBlockErr := labelsDB.addBlock(block)
+	if addBlockErr != nil {
+		http.Error(w, addBlockErr.Error(), 400)
+		return
+	}
+
+	workItem := workItemMap[block.ID]
+	request := IDSRequest{LabKey: block.LabKey,
+		LabName:  block.LabName,
+		Username: block.Coder}
+	inactivateWorkItem(workItem, request)
+	fmt.Printf("\n%+v", block)
 
 }

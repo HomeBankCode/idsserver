@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/boltdb/bolt"
@@ -29,6 +30,15 @@ type Block struct {
 	ID        string `json:"id"`
 	Coder     string `json:"coder"`
 	LabKey    string `json:"lab-key"`
+	LabName   string `json:"lab-name"`
+}
+
+func (block *Block) encode() ([]byte, error) {
+	data, err := json.MarshalIndent(block, "", "  ")
+	if err != nil {
+		return data, err
+	}
+	return data, nil
 }
 
 func (block *Block) appendClip(clip Clip) {
@@ -91,25 +101,21 @@ func (db *LabelsDB) Open() error {
 	return err
 }
 
-// func submissionParse(submission SubmissionRequest) []Block {
-// 	var blocks []Block
-// 	for blockName, submBlock := range map[string][]map[string]string(submission["blocks"]) {
-// 		currBlock := Block{ClanFile: submBlock["clan-file"],
-// 			Index: submBlock["block-index"],
-// 			Clips: make([]Clip, 0)}
-//
-// 		for index, clip := range submBlock {
-// 			currClip := Clip{}
-// 			currClip.Index = clip["clip-index"]
-// 			currClip.Tier = clip["clip-tier"]
-// 			currClip.TimeStamp = clip["timestamp"]
-// 			currClip.StartTime = clip["start-time"]
-// 			currClip.OffsetTime = clip["offset-time"]
-//
-// 			currBlock.appendClip(currClip)
-// 		}
-//
-// 	}
-// 	return blocks
-//
-// }
+// Close closes the database
+func (db *LabelsDB) Close() {
+	db.db.Close()
+}
+
+func (db *LabelsDB) addBlock(block Block) error {
+	encodedBlock, err := block.encode()
+	if err != nil {
+		return err
+	}
+
+	updateErr := db.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labelsBucket))
+		err := bucket.Put([]byte(block.ID), encodedBlock)
+		return err
+	})
+	return updateErr
+}

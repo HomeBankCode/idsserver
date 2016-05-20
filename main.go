@@ -24,6 +24,12 @@ var (
 	workDB *WorkDB
 
 	/*
+		labelsDB is the wrapper around the database that stores all the
+		classifications that the users send back to the server. Keys are
+		Block ID's, values are Block JSONs
+	*/
+	labelsDB *LabelsDB
+	/*
 		manifestFile is the path to the path_manifests.csv file.
 		This contains the name of the clan files and the paths to
 		all the blocks that are a part of them.
@@ -149,6 +155,9 @@ func main() {
 
 	workDB = LoadWorkDB()
 	defer workDB.Close()
+
+	labelsDB = LoadLabelsDB()
+	defer labelsDB.Close()
 
 	mainConfig = readConfigFile(configFile)
 
