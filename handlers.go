@@ -24,15 +24,6 @@ type IDSRequest struct {
 	//NumItems int    `json:"num-items"`
 }
 
-/*
-SubmissionRequest is a struct representing the
-classifications of a block being sent back to the
-server
-*/
-type SubmissionRequest struct {
-	Block Block `json:"block"`
-}
-
 func (br *IDSRequest) userID() string {
 	return br.LabKey + ":::" + br.Username
 }
@@ -49,20 +40,6 @@ to persist the current state to disk and shut down
 */
 type ShutdownRequest struct {
 	AdminKey string `json:"admin-key"`
-}
-
-/*
-WorkGroupRequest is a struct representing a request
-sent to the server asking for a new WorkGroup
-*/
-type WorkGroupRequest struct {
-	LabKey   string `json:"lab-key"`
-	Username string `json:"username"`
-	NumItems int    `json:"num-items"`
-}
-
-func (wgr *WorkGroupRequest) toIDSRequest() IDSRequest {
-	return IDSRequest{LabKey: wgr.LabKey, Username: wgr.Username}
 }
 
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +108,6 @@ func shutDownHandler(w http.ResponseWriter, r *http.Request) {
 	if shutdownReq.AdminKey == mainConfig.AdminKey {
 		shutDown()
 	}
-
 }
 
 func labInfoHandler(w http.ResponseWriter, r *http.Request) {

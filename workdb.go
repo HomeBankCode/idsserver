@@ -24,34 +24,6 @@ var (
 	ErrRanOutOfItems = errors.New("Ran out of unique items")
 )
 
-// WorkQueue is the list of WorkGroups
-type WorkQueue struct {
-	WorkGroups []WorkGroup `json:"work-groups"`
-}
-
-/*
-WorkGroup is the unit of work that gets distributed.
-It contains a list of WorkItems. Each WorkItem contains
-1 block from a single CLAN file
-*/
-type WorkGroup struct {
-	WorkItems []WorkItem `json:"work-items"`
-}
-
-/*
-NewWorkGroup returns a new WorkGroup containing
-(numBlocksToSend) WorkItems uniquely selected to
-be from distinct files and not currently being
-worked on (i.e. haven't been send to any coders yet)
-*/
-/*func NewWorkGroup(wgRequest WorkGroupRequest) WorkGroup {*/
-//workItems, err := chooseUniqueWorkItems(wgRequest)
-//if err != nil {
-//log.Fatal(err)
-//}
-//return WorkGroup{WorkItems: workItems}
-/*}*/
-
 /*
 WorkItem represents a work item at the granularity of
 a single CLAN file. Each WorkItem signifies a single
@@ -168,14 +140,6 @@ func (db *WorkDB) loadItemMap() WorkItemMap {
 	return itemMap
 }
 
-func (wg *WorkGroup) encode() ([]byte, error) {
-	enc, err := json.MarshalIndent(wg, "", " ")
-	if err != nil {
-		return nil, err
-	}
-	return enc, nil
-}
-
 func (wi *WorkItem) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(wi, "", " ")
 	if err != nil {
@@ -192,15 +156,6 @@ func decodeWorkItemJSON(data []byte) (*WorkItem, error) {
 	}
 	return workItem, nil
 
-}
-
-func decodeWorkGroupJSON(data []byte) (*WorkGroup, error) {
-	var wg *WorkGroup
-	err := json.Unmarshal(data, &wg)
-	if err != nil {
-		return nil, err
-	}
-	return wg, nil
 }
 
 /*

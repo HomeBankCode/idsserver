@@ -29,6 +29,7 @@ var (
 		Block ID's, values are Block JSONs
 	*/
 	labelsDB *LabelsDB
+
 	/*
 		manifestFile is the path to the path_manifests.csv file.
 		This contains the name of the clan files and the paths to
@@ -189,18 +190,6 @@ func main() {
 	// 	fmt.Println(value)
 	// }
 
-	/*
-		labsDB.addUser("123456", "Bergelson Lab", "andrei")
-		labsDB.addUser("123456", "Bergelson Lab", "shannon")
-		labsDB.addUser("123457", "Einstein Lab", "alice")
-		labsDB.addUser("123458", "Fermi Lab", "bob")
-		labsDB.addUser("123459", "Soderstrom Lab", "sally")
-		labsDB.addUser("123450", "Marr Lab", "joe")
-		labsDB.addUser("123450", "Marr Lab", "fred")
-		labsDB.addUser("123450", "Marr Lab", "jane")
-		labsDB.addUser("123450", "Marr Lab", "bill")
-		labsDB.addUser("1234567654321", "Billy's lab", "billybob")
-	*/
 	//labs := labsDB.getAllLabs()
 
 	// fmt.Println("Printing all the labs: ")
