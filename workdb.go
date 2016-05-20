@@ -293,16 +293,12 @@ func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool 
 		Check if user already has a block
 		from the same file
 	*/
-	for _, userItem := range user.WorkItems {
+	for _, userItem := range user.ActiveWorkItems {
 		if userItem.FileName == item.FileName {
 			return false
 		}
 	}
 	return true
-}
-
-func persistActiveMapChange(item WorkItem) {
-
 }
 
 func (db *WorkDB) compareWithWorkItemMap(itemMap WorkItemMap) []WorkItem {

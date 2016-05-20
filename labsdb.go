@@ -20,6 +20,10 @@ var (
 
 	// ErrLabDoesntExist means Lab doesn't exist in the LabsDB
 	ErrLabDoesntExist = errors.New("Lab doesn't exist")
+
+	// ErrUserNotAssignedWorkItem means that the user doesn't have
+	// a given WorkItem in their ActiveWorkItems list.
+	ErrUserNotAssignedWorkItem = errors.New("User wasn't assigned this work item")
 )
 
 // Lab is a JSON serialization
@@ -46,7 +50,7 @@ func (user *User) inactivateWorkItem(item WorkItem) error {
 	var newActiveItems []WorkItem
 	foundItem := false
 
-	for index, element := range user.ActiveWorkItems {
+	for _, element := range user.ActiveWorkItems {
 		if item.ID == element.ID {
 			foundItem = true
 		} else {
@@ -54,6 +58,12 @@ func (user *User) inactivateWorkItem(item WorkItem) error {
 		}
 	}
 	user.PastWorkItems = append(user.PastWorkItems, item)
+	user.ActiveWorkItems = newActiveItems
+
+	if !foundItem {
+		return ErrUserNotAssignedWorkItem
+	}
+	return nil
 }
 
 func (lab *Lab) encode() ([]byte, error) {
