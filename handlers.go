@@ -205,7 +205,11 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &block)
-	//blocks := submissionParse(submitReq)
+
+	if !labsDB.userExists(block.LabKey, block.Coder) {
+		http.Error(w, ErrUserDoesntExist.Error(), 500)
+		return
+	}
 
 	addBlockErr := labelsDB.addBlock(block)
 	if addBlockErr != nil {
@@ -219,6 +223,7 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		LabName:  block.LabName,
 		Username: block.Coder,
 	}
+
 	inactivateWorkItem(workItem, request)
 	//fmt.Printf("\n%+v", block)
 
