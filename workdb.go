@@ -171,7 +171,7 @@ func workItemIsActive(item WorkItem) bool {
 }
 
 /*
-inactivateWorkItem sets the WorkItem to true
+inactivateWorkItem sets the WorkItem to false
 in the workItemMap
 */
 func inactivateWorkItem(item WorkItem, request IDSRequest) {
@@ -239,6 +239,7 @@ func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 			return item, nil
 		}
 	}
+
 	fmt.Println("\nRan out of unique items for this user")
 	return workItem, ErrRanOutOfItems
 }

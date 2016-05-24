@@ -214,10 +214,25 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	workItem := workItemMap[block.ID]
-	request := IDSRequest{LabKey: block.LabKey,
+	request := IDSRequest{
+		LabKey:   block.LabKey,
 		LabName:  block.LabName,
-		Username: block.Coder}
+		Username: block.Coder,
+	}
 	inactivateWorkItem(workItem, request)
-	fmt.Printf("\n%+v", block)
+	//fmt.Printf("\n%+v", block)
 
 }
+
+// func backupHandler(w http.ResponseWriter, r *http.Request) {
+// 	err := db.View(func(tx *bolt.Tx) error {
+// 		w.Header().Set("Content-Type", "application/octet-stream")
+// 		w.Header().Set("Content-Disposition", `attachment; filename="my.db"`)
+// 		w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
+// 		_, err := tx.WriteTo(w)
+// 		return err
+// 	})
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
+// }

@@ -138,6 +138,7 @@ func (db *LabsDB) addUser(labKey, labName, username string) {
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {
+			fmt.Println("This user already exists")
 			return
 		}
 		lab, _ := db.getLab(labKey)
@@ -180,9 +181,10 @@ func (db *LabsDB) userExists(labKey, username string) bool {
 		_, exists := labData.Users[username]
 		if exists {
 			userExists = true
+			fmt.Println("inside labsDB.userExists(): userExists = true")
+		} else {
+			userExists = false
 		}
-		userExists = false
-
 		return err
 	})
 
