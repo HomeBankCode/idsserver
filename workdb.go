@@ -155,7 +155,6 @@ func decodeWorkItemJSON(data []byte) (*WorkItem, error) {
 		return nil, err
 	}
 	return workItem, nil
-
 }
 
 /*

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path"
 )
@@ -45,7 +44,8 @@ type ShutdownRequest struct {
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	var blockRequest IDSRequest
@@ -87,7 +87,8 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 func shutDownHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	var shutdownReq ShutdownRequest
@@ -113,7 +114,8 @@ func shutDownHandler(w http.ResponseWriter, r *http.Request) {
 func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	var labInfoReq IDSRequest
@@ -133,8 +135,6 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(labsDB)
-
 	json.NewEncoder(w).Encode(lab)
 
 }
@@ -142,7 +142,8 @@ func labInfoHandler(w http.ResponseWriter, r *http.Request) {
 func allLabInfoHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	var labInfoReq IDSRequest
@@ -167,7 +168,8 @@ func allLabInfoHandler(w http.ResponseWriter, r *http.Request) {
 func addUserHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	var addUserReq IDSRequest
@@ -189,11 +191,11 @@ func addUserHandler(w http.ResponseWriter, r *http.Request) {
 func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), 400)
+		return
 	}
 
 	fmt.Println("got a submission request")
-	//submitReq := SubmissionRequest{Blocks: make(map[string][]map[string]string)}
 	var block Block
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -203,8 +205,8 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &block)
+	fmt.Printf("\n%#v", block)
 
 	if !labsDB.userExists(block.LabKey, block.Coder) {
 		http.Error(w, ErrUserDoesntExist.Error(), 500)
@@ -225,7 +227,6 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	inactivateWorkItem(workItem, request)
-	//fmt.Printf("\n%+v", block)
 
 }
 
