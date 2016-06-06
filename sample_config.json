@@ -1,4 +1,10 @@
 {
  "admin-key": "1234567654321",
- "work-map-loaded": false
+ "work-map-loaded": false,
+ "labs": [
+   "12345",
+   "54321",
+   "67890",
+   "09876"
+ ]
 }

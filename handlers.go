@@ -184,6 +184,12 @@ func addUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(jsonDataFromHTTP, &addUserReq)
 	fmt.Println(addUserReq)
 
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(addUserReq.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
 	labsDB.addUser(addUserReq.LabKey, addUserReq.LabName, addUserReq.Username)
 
 }

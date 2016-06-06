@@ -24,6 +24,10 @@ var (
 	// ErrUserNotAssignedWorkItem means that the user doesn't have
 	// a given WorkItem in their ActiveWorkItems list.
 	ErrUserNotAssignedWorkItem = errors.New("User wasn't assigned this work item")
+
+	// ErrLabNotRegistered means that the lab is not one of the labs
+	// approved to access this server
+	ErrLabNotRegistered = errors.New("Lab is not registered")
 )
 
 // Lab is a JSON serialization

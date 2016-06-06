@@ -105,8 +105,9 @@ It's loaded from the config.json file read in as argument
 from the command line upon starting the server.
 */
 type Config struct {
-	AdminKey      string `json:"admin-key"`
-	WorkMapLoaded bool   `json:"work-map-loaded"`
+	AdminKey      string   `json:"admin-key"`
+	WorkMapLoaded bool     `json:"work-map-loaded"`
+	Labs          []string `json:"labs"`
 }
 
 func (conf *Config) encode() ([]byte, error) {
@@ -127,6 +128,16 @@ func (conf *Config) writeFile() {
 	if err != nil {
 		log.Fatal(writeErr)
 	}
+}
+
+func (conf *Config) labIsRegistered(labKey string) bool {
+	for _, lab := range conf.Labs {
+
+		if lab == labKey {
+			return true
+		}
+	}
+	return false
 }
 
 func readConfigFile(path string) Config {
