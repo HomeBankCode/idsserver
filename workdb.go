@@ -30,11 +30,12 @@ a single CLAN file. Each WorkItem signifies a single
 block from that specific clan file
 */
 type WorkItem struct {
-	ID        string `json:"id"`
-	FileName  string `json:"filename"`
-	Block     int    `json:"block"`
-	Active    bool   `json:"active"`
-	BlockPath string `json:"block-path"`
+	ID         string `json:"id"`
+	FileName   string `json:"filename"`
+	Block      int    `json:"block"`
+	Active     bool   `json:"active"`
+	BlockPath  string `json:"block-path"`
+	TimesCoded int    `json:"times-coded"`
 }
 
 // WorkDB is a wrapper around a boltDB
@@ -176,8 +177,9 @@ in the workItemMap
 func inactivateWorkItem(item WorkItem, request IDSRequest) {
 	value := workItemMap[item.ID]
 	value.Active = false
+	value.TimesCoded++
 	workItemMap[item.ID] = value
-	workDB.persistWorkItem(item)
+	workDB.persistWorkItem(value)
 
 	// update the User's WorkItem list on disk
 	user, getUsrError := labsDB.getUser(request.LabKey, request.Username)
@@ -230,8 +232,7 @@ func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 		return WorkItem{}, ErrUserDoesntExist
 	}
 	for _, item := range workItemMap {
-
-		if !item.Active && blockAppropriateForUser(item, request, user) {
+		if blockAppropriateForUser(item, request, user) {
 			activateWorkItem(item, request)
 			fmt.Println("Selected Item: ")
 			fmt.Println(item)
@@ -244,16 +245,29 @@ func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
 }
 
 func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool {
+	if item.Active {
+		return false
+	} else if item.TimesCoded != 0 {
+		fmt.Println("item has been coded already")
+		return false
+	} else if userHasBlockFromFile(item, request, user) {
+		fmt.Println("user has block from this file")
+		return false
+	}
+	return true
+}
+
+func userHasBlockFromFile(item WorkItem, request IDSRequest, user User) bool {
 	/*
 		Check if user already has a block
 		from the same file
 	*/
 	for _, userItem := range user.ActiveWorkItems {
 		if userItem.FileName == item.FileName {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func (db *WorkDB) compareWithWorkItemMap(itemMap WorkItemMap) []WorkItem {
