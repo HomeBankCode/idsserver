@@ -1,10 +1,13 @@
 {
  "admin-key": "1234567654321",
- "work-map-loaded": false,
+ "work-map-loaded": true,
  "labs": [
-   "12345",
-   "54321",
-   "67890",
-   "09876"
- ]
+  "12345",
+  "54321",
+  "67890",
+  "09876"
+ ],
+ "labs-db-path": "db/labs.db",
+ "work-db-path": "db/work.db",
+ "labels-db-path": "db/labels.db"
 }

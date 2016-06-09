@@ -7,10 +7,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const (
-	// path to the LabelsDB file
-	labelsDBPath = "db/labels.db"
+var (
+	// path to the LabsDB file
+	labelsDBPath = mainConfig.LabelsDBPath
+)
 
+const (
 	// name of the database's labels bucket
 	labelsBucket = "Labels"
 )

@@ -9,8 +9,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+var (
+	// path to the LabsDB file
+	labsDBPath = mainConfig.LabsDBPath
+)
+
 const (
-	labsDBPath = "db/labs.db"
 	labsBucket = "Labs"
 )
 

@@ -9,9 +9,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const (
+var (
 	// path to the WorkDB file
-	workDBPath = "db/work.db"
+	workDBPath = mainConfig.WorkDBPath
+)
+
+const (
 
 	// name of the database's work bucket
 	workBucket = "Work"

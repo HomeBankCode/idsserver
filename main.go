@@ -108,6 +108,9 @@ type Config struct {
 	AdminKey      string   `json:"admin-key"`
 	WorkMapLoaded bool     `json:"work-map-loaded"`
 	Labs          []string `json:"labs"`
+	LabsDBPath    string   `json:"labs-db-path"`
+	WorkDBPath    string   `json:"work-db-path"`
+	LabelsDBPath  string   `json:"labels-db-path"`
 }
 
 func (conf *Config) encode() ([]byte, error) {
@@ -156,10 +159,22 @@ func shutDown() {
 
 }
 
+func setDBPaths() {
+	workDBPath = mainConfig.WorkDBPath
+	labsDBPath = mainConfig.LabsDBPath
+	labelsDBPath = mainConfig.LabelsDBPath
+}
+
 func main() {
 
 	configFile = os.Args[1]
 	manifestFile = os.Args[2]
+
+	mainConfig = readConfigFile(configFile)
+	setDBPaths()
+
+	fmt.Println("mainConfig: ")
+	fmt.Println(mainConfig)
 
 	// Open the LabsDB
 	labsDB = LoadLabsDB()
@@ -171,42 +186,21 @@ func main() {
 	labelsDB = LoadLabelsDB()
 	defer labelsDB.Close()
 
-	mainConfig = readConfigFile(configFile)
-
-	fmt.Println("mainConfig: ")
-	fmt.Println(mainConfig)
-
-	//	return
-
 	dataMap := fillDataMap()
 
-	/*
-		get the WorkItemMap, either from the dataMap,
-		or from the workDB on disk.
-	*/
+	//	get the WorkItemMap, either from the dataMap,
+	//	or from the workDB on disk.
+
 	if !mainConfig.WorkMapLoaded {
 		workItemMap = dataMap.partitionIntoWorkItemsMap()
 		workDB.persistWorkItemMap(workItemMap)
 		mainConfig.WorkMapLoaded = true
-		//mainConfig.writeFile()
+		mainConfig.writeFile()
 	} else {
 		workItemMap = workDB.loadItemMap()
 	}
 
 	fmt.Println("# of work items map: ", len(workItemMap))
-
-	// for key, value := range workItemMap {
-	//
-	// 	fmt.Println(key)
-	// 	fmt.Println(value)
-	// }
-
-	//labs := labsDB.getAllLabs()
-
-	// fmt.Println("Printing all the labs: ")
-	// for _, lab := range labs {
-	// 	fmt.Println(*lab)
-	// }
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
@@ -216,6 +210,6 @@ func main() {
 	http.HandleFunc("/submitlabels/", submitLabelsHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":4000", nil)
 
 }
