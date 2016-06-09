@@ -159,9 +159,16 @@ func (db *LabsDB) addUser(labKey, labName, username string) {
 
 func (db *LabsDB) labExists(labKey string) bool {
 	var exists bool
+
+	fmt.Println("Check for lab key existence: ")
+	fmt.Println(labKey)
+
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(labsBucket))
 		lab := bucket.Get([]byte(labKey))
+
+		fmt.Println("Lab lookup returned: ")
+		fmt.Println(lab)
 
 		// lab key doesn't exist
 		if lab == nil {

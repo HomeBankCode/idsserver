@@ -127,8 +127,8 @@ func (db *WorkDB) loadItemMap() WorkItemMap {
 		cursor := bucket.Cursor()
 
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			fmt.Println("\nWorkItem from DB:")
-			fmt.Printf("key=%s, value=%s\n", k, v)
+			//fmt.Println("\nWorkItem from DB:")
+			//fmt.Printf("key=%s, value=%s\n", k, v)
 			currItem, err := decodeWorkItemJSON(v)
 			if err != nil {
 				log.Fatal(err)
