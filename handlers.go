@@ -294,14 +294,14 @@ func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLabLabelsHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, err.Error(), 400)
+	parseErr := r.ParseForm()
+	if parseErr != nil {
+		http.Error(w, parseErr.Error(), 400)
 		return
 	}
 
-	fmt.Println("got a request for work item data")
-	var workItemReq WorkItemDataReq
+	fmt.Println("got a request for all labeled blocks")
+	var idsRequest IDSRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -312,23 +312,30 @@ func getLabLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &workItemReq)
-	fmt.Println(workItemReq)
+	json.Unmarshal(jsonDataFromHTTP, &idsRequest)
+	fmt.Println(idsRequest)
 
-	// requestedWI, exists := workItemMap[workItemReq.ItemID]
-	// if !exists {
-	// 	http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
-	// 	return
-	// }
-
-	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
-	if getBlockErr != nil {
-		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(idsRequest.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
 		return
 	}
 
-	fmt.Println(block)
-	json.NewEncoder(w).Encode(block)
+	blockIDs, getIdsErr := labsDB.getCompletedBlocks(idsRequest.LabKey)
+	if getIdsErr != nil {
+		http.Error(w, getIdsErr.Error(), 400)
+		fmt.Println("getCompletedBlocks failed")
+		return
+	}
+
+	blocks, getBlocksErr := labelsDB.getBlockGroup(blockIDs)
+	if getBlocksErr != nil {
+		http.Error(w, getBlocksErr.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(blocks)
 }
 
 func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {

@@ -341,3 +341,18 @@ func (db *LabsDB) setUser(user User) error {
 	db.setLab(lab.Key, lab)
 	return nil
 }
+
+func (db *LabsDB) getCompletedBlocks(labKey string) ([]string, error) {
+	var blocks []string
+	lab, err := db.getLab(labKey)
+	if err != nil {
+		return blocks, err
+	}
+
+	for _, value := range lab.Users {
+		for _, block := range value.PastWorkItems {
+			blocks = append(blocks, block.ID)
+		}
+	}
+	return blocks, nil
+}
