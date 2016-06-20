@@ -85,7 +85,7 @@ func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
 			newActiveItems = append(newActiveItems, element)
 		}
 	}
-	user.PastWorkItems = append(user.PastWorkItems, item)
+	//user.PastWorkItems = append(user.PastWorkItems, item)
 	user.ActiveWorkItems = newActiveItems
 
 	if !foundItem {

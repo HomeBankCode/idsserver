@@ -197,6 +197,22 @@ func inactivateWorkItem(item WorkItem, request IDSRequest) {
 	labsDB.setUser(user)
 }
 
+func inactivateIncompleteWorkItem(item WorkItem, request IDSRequest) {
+	value := workItemMap[item.ID]
+	value.Active = false
+	workItemMap[item.ID] = value
+	workDB.persistWorkItem(value)
+
+	// update the User's WorkItem list on disk
+	user, getUsrError := labsDB.getUser(request.LabKey, request.Username)
+	if getUsrError != nil {
+		return
+	}
+
+	user.inactivateIncompleteWorkItem(value)
+	labsDB.setUser(user)
+}
+
 /*
 activateWorkItem sets the WorkItem active status to true
 in the workItemMap.

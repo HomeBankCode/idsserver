@@ -375,33 +375,22 @@ func submitWOLabelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println()
 	json.Unmarshal(jsonDataFromHTTP, &workItemRelReq)
-	fmt.Println(workItemReq)
+	fmt.Println(workItemRelReq)
 
-	// requestedWI, exists := workItemMap[workItemReq.ItemID]
-	// if !exists {
-	// 	http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
-	// 	return
-	// }
-
-	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
-	if getBlockErr != nil {
-		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+	if !labsDB.userExists(workItemRelReq.LabKey, workItemRelReq.Username) {
+		http.Error(w, ErrUserDoesntExist.Error(), 500)
 		return
 	}
 
-	fmt.Println(block)
-	json.NewEncoder(w).Encode(block)
-}
+	for _, block := range workItemRelReq.BlockIds {
 
-// func backupHandler(w http.ResponseWriter, r *http.Request) {
-// 	err := db.View(func(tx *bolt.Tx) error {
-// 		w.Header().Set("Content-Type", "application/octet-stream")
-// 		w.Header().Set("Content-Disposition", `attachment; filename="my.db"`)
-// 		w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
-// 		_, err := tx.WriteTo(w)
-// 		return err
-// 	})
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 	}
-// }
+		workItem := workItemMap[block]
+		request := IDSRequest{
+			LabKey:   workItemRelReq.LabKey,
+			LabName:  workItemRelReq.LabName,
+			Username: workItemRelReq.Username,
+		}
+
+		inactivateIncompleteWorkItem(workItem, request)
+	}
+}
