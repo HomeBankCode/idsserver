@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -11,6 +12,10 @@ import (
 var (
 	// path to the LabsDB file
 	labelsDBPath = mainConfig.LabelsDBPath
+
+	// ErrCouldntFindLabeledBlock means a block ID wasn't
+	// found in the database
+	ErrCouldntFindLabeledBlock = errors.New("Couldn't Find Labeled Block")
 )
 
 const (
@@ -21,6 +26,15 @@ const (
 // LabelsDB is a wrapper around a boltDB
 type LabelsDB struct {
 	db *bolt.DB
+}
+
+// BlockGroup is a collection of blocks
+type BlockGroup struct {
+	Blocks []Block `json:"blocks"`
+}
+
+func (bg *BlockGroup) append(block Block) {
+	bg.Blocks = append(bg.Blocks, block)
 }
 
 // Block represents a CLAN conversation block
@@ -165,4 +179,17 @@ func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
 	}
 	return block, nil
 
+}
+
+func (db *LabelsDB) getBlockGroup(blockIDs []string) (BlockGroup, error) {
+	var blocks BlockGroup
+
+	for _, id := range blockIDs {
+		block, err := db.getBlock(id)
+		if err != nil {
+			return BlockGroup{}, ErrCouldntFindLabeledBlock
+		}
+		blocks.append(*block)
+	}
+	return blocks, nil
 }

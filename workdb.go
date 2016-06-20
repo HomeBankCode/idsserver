@@ -349,3 +349,21 @@ func (db *WorkDB) persistWorkItemMap(itemMap WorkItemMap) {
 		db.persistWorkItem(item)
 	}
 }
+
+// func getCompleteLabBlocks(request IDSRequest) BlockGroup {
+// 	var blocks BlockGroup
+//
+// 	for _, item := range workItemMap {
+// 		if item.
+// 	}
+// }
+
+func getAllCompleteBlockIDs() []string {
+	var blockIDs []string
+	for _, item := range workItemMap {
+		if item.TimesCoded > 0 {
+			blockIDs = append(blockIDs, item.ID)
+		}
+	}
+	return blockIDs
+}

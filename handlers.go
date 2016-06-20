@@ -338,7 +338,7 @@ func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("got a request for work item data")
+	fmt.Println("got a request for all labeled blocks")
 	var idsRequest IDSRequest
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
@@ -353,6 +353,22 @@ func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(jsonDataFromHTTP, &idsRequest)
 	fmt.Println(idsRequest)
 
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(idsRequest.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
+	blockIDs := getAllCompleteBlockIDs()
+	blocks, getBlocksErr := labelsDB.getBlockGroup(blockIDs)
+
+	if getBlocksErr != nil {
+		http.Error(w, getBlocksErr.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(blocks)
 }
 
 func submitWOLabelsHandler(w http.ResponseWriter, r *http.Request) {
