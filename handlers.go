@@ -20,7 +20,26 @@ type IDSRequest struct {
 	LabKey   string `json:"lab-key"`
 	LabName  string `json:"lab-name"`
 	Username string `json:"username"`
-	//NumItems int    `json:"num-items"`
+}
+
+/*
+WorkItemDataReq is a request for the label data
+for a particular work item from the database.
+*/
+type WorkItemDataReq struct {
+	ItemID string `json:"item-id"`
+	LabKey string `json:"lab-key"`
+}
+
+/*
+WorkItemReleaseReq is a request to inactivate a
+group of blocks without coding them.
+*/
+type WorkItemReleaseReq struct {
+	LabKey   string   `json:"lab-key"`
+	LabName  string   `json:"lab-name"`
+	Username string   `json:"username"`
+	BlockIds []string `json:"blocks"`
 }
 
 func (br *IDSRequest) userID() string {
@@ -234,6 +253,144 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	inactivateWorkItem(workItem, request)
 
+}
+
+func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for work item data")
+	var workItemReq WorkItemDataReq
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &workItemReq)
+	fmt.Println(workItemReq)
+
+	// requestedWI, exists := workItemMap[workItemReq.ItemID]
+	// if !exists {
+	// 	http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+	// 	return
+	// }
+
+	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
+	if getBlockErr != nil {
+		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+		return
+	}
+
+	fmt.Println(block)
+	json.NewEncoder(w).Encode(block)
+}
+
+func getLabLabelsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for work item data")
+	var workItemReq WorkItemDataReq
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &workItemReq)
+	fmt.Println(workItemReq)
+
+	// requestedWI, exists := workItemMap[workItemReq.ItemID]
+	// if !exists {
+	// 	http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+	// 	return
+	// }
+
+	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
+	if getBlockErr != nil {
+		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+		return
+	}
+
+	fmt.Println(block)
+	json.NewEncoder(w).Encode(block)
+}
+
+func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for work item data")
+	var idsRequest IDSRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &idsRequest)
+	fmt.Println(idsRequest)
+
+}
+
+func submitWOLabelsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for work item data")
+	var workItemRelReq WorkItemReleaseReq
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &workItemRelReq)
+	fmt.Println(workItemReq)
+
+	// requestedWI, exists := workItemMap[workItemReq.ItemID]
+	// if !exists {
+	// 	http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+	// 	return
+	// }
+
+	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
+	if getBlockErr != nil {
+		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
+		return
+	}
+
+	fmt.Println(block)
+	json.NewEncoder(w).Encode(block)
 }
 
 // func backupHandler(w http.ResponseWriter, r *http.Request) {

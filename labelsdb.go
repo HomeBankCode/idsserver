@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/boltdb/bolt"
@@ -43,6 +44,15 @@ func (block *Block) encode() ([]byte, error) {
 	return data, nil
 }
 
+func decodeBlockJSON(data []byte) (*Block, error) {
+	var block *Block
+	err := json.Unmarshal(data, &block)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
 func (block *Block) appendClip(clip Clip) {
 	block.Clips = append(block.Clips, clip)
 }
@@ -59,6 +69,7 @@ type Clip struct {
 	Classification  string `json:"classification"`
 	LabelDate       string `json:"label-date"`
 	Coder           string `json:"coder"`
+	GenderLabel     string `json:"gender-label"`
 }
 
 /*
@@ -120,4 +131,38 @@ func (db *LabelsDB) addBlock(block Block) error {
 		return err
 	})
 	return updateErr
+}
+
+func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
+
+	fmt.Println("Trying to retrieve block data: ")
+	fmt.Println(blockID)
+
+	var exists bool
+	var blockData []byte
+
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labelsBucket))
+		blockData = bucket.Get([]byte(blockID))
+
+		// lab key doesn't exist
+		if blockData == nil {
+			exists = false
+		} else {
+			exists = true
+		}
+		return nil
+	})
+
+	if !exists {
+		return &Block{}, ErrWorkItemDoesntExist
+	}
+
+	block, err := decodeBlockJSON(blockData)
+	//fmt.Println(labData)
+	if err != nil {
+		return &Block{}, ErrWorkItemDoesntExist
+	}
+	return block, nil
+
 }

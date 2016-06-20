@@ -208,6 +208,10 @@ func main() {
 	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
 	http.HandleFunc("/adduser/", addUserHandler)
 	http.HandleFunc("/submitlabels/", submitLabelsHandler)
+	http.HandleFunc("/submitwolabels/", submitWOLabelsHandler)
+	http.HandleFunc("/getlabels/", getLabelsHandler)
+	http.HandleFunc("/getlablabels/", getLabLabelsHandler)
+	http.HandleFunc("/getalllabels/", getAllLabelsHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":4000", nil)

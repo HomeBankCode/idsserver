@@ -74,6 +74,26 @@ func (user *User) inactivateWorkItem(item WorkItem) error {
 	return nil
 }
 
+func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
+	var newActiveItems []WorkItem
+	foundItem := false
+
+	for _, element := range user.ActiveWorkItems {
+		if item.ID == element.ID {
+			foundItem = true
+		} else {
+			newActiveItems = append(newActiveItems, element)
+		}
+	}
+	user.PastWorkItems = append(user.PastWorkItems, item)
+	user.ActiveWorkItems = newActiveItems
+
+	if !foundItem {
+		return ErrUserNotAssignedWorkItem
+	}
+	return nil
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
@@ -166,9 +186,6 @@ func (db *LabsDB) labExists(labKey string) bool {
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(labsBucket))
 		lab := bucket.Get([]byte(labKey))
-
-		fmt.Println("Lab lookup returned: ")
-		fmt.Println(lab)
 
 		// lab key doesn't exist
 		if lab == nil {
