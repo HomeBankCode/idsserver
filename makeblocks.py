@@ -9,9 +9,13 @@ import datetime
 import zipfile
 import shutil
 
+from multiprocessing import Process
+
 
 
 audio_formats = [".mp3", ".wav"]
+
+block_num_regx = re.compile("(Conversation )+(\d+)")
 
 class Block:
     def __init__(self, index, clan_file):
@@ -84,7 +88,7 @@ class Parser:
 
 
             for index, block in enumerate(conversation_blocks):
-                self.clip_blocks.append(self.create_clips(block, path, index+1))
+                self.clip_blocks.append(self.create_clips(block[1], path, block[0]))
 
             self.find_multitier_parents()
 
@@ -151,20 +155,26 @@ class Parser:
 
         last_tier = ""
 
+        block_num = 0
         for conversation in conversations:
             conv_block = []
             for line in conversation:
                 if line.startswith("%"):
                     continue
                 elif line.startswith("@"):
+                    if "Conversation" in line:
+                        result = block_num_regx.search(line)
+                        if result:
+                            block_num = result.group(2)
                     continue
                 elif line.startswith("*"):
                     last_tier = line[0:4]
                     conv_block.append(line)
                 else:
                     conv_block.append(last_tier+line+"   MULTILINE")
-            filtered_conversations.append(conv_block)
+            filtered_conversations.append((block_num, conv_block))
             conv_block = []
+            block_num = 0
 
         return filtered_conversations
 
@@ -322,17 +332,29 @@ def print_manifest(clips_dir):
         writer.writerow(["clanfile", "block_index", "block_path"])
         writer.writerows(output)
 
+
+def run_parser(cha_file, audio_file, clips_dir):
+    parser = Parser(cha_file, audio_file, clips_dir)
+
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
     clips_dir = sys.argv[2]
 
+    jobs = []
     for root, dirs, files in os.walk(start_dir):
         if len(dirs) == 0:
             paths = check_dir(root)
 
             if paths:
-                parser = Parser(paths.cha_file, paths.audio_file, clips_dir)
+                proc = Process(target=run_parser, args=(paths.cha_file, paths.audio_file, clips_dir,))
+                proc.start()
+                jobs.append(proc)
+
+    for proc in jobs:
+        proc.join()
+
+                #parser = Parser(paths.cha_file, paths.audio_file, clips_dir)
 
 
 
