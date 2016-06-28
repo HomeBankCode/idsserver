@@ -9,6 +9,10 @@ import datetime
 import zipfile
 import shutil
 
+
+
+audio_formats = [".mp3", ".wav"]
+
 class Block:
     def __init__(self, index, clan_file):
 
@@ -282,7 +286,7 @@ def check_dir(path):
     if len(filtered_files) == 2\
         and any(".cha" in x for x in files):
 
-        audio = next(file for file in filtered_files if file.endswith(".wav"))
+        audio = next(file for file in filtered_files if file.endswith(tuple(audio_formats)))
         cha = next(file for file in filtered_files if file.endswith(".cha"))
         abs_audio = os.path.join(path, audio)
         abs_cha = os.path.join(path, cha)
