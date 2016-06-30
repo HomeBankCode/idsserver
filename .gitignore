@@ -6,3 +6,7 @@ data_tree
 data_tree_old
 .tags
 .tags1
+new_data
+regular_path_manifest.csv
+train_data_tree
+training_path_manifest.csv

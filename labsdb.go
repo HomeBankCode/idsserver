@@ -32,6 +32,11 @@ var (
 	// ErrLabNotRegistered means that the lab is not one of the labs
 	// approved to access this server
 	ErrLabNotRegistered = errors.New("Lab is not registered")
+
+	// ErrTrainBlockNotFound means that this user doesn't have
+	// this training block's labels stored in it's CompleteTrainBlocks
+	// field
+	ErrTrainBlockNotFound = errors.New("Training block not found for this user")
 )
 
 // Lab is a JSON serialization
@@ -44,14 +49,19 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name            string     `json:"name"`
-	ParentLab       string     `json:"parent-lab"`
-	ActiveWorkItems []WorkItem `json:"active-work-items"`
-	PastWorkItems   []WorkItem `json:"finished-work-items"`
+	Name                string     `json:"name"`
+	ParentLab           string     `json:"parent-lab"`
+	ActiveWorkItems     []WorkItem `json:"active-work-items"`
+	PastWorkItems       []WorkItem `json:"finished-work-items"`
+	CompleteTrainBlocks []Block    `json:"complete-train-blocks"`
 }
 
 func (user *User) addWorkItem(item WorkItem) {
 	user.ActiveWorkItems = append(user.ActiveWorkItems, item)
+}
+
+func (user *User) addCompleteTrainBlock(block Block) {
+	user.CompleteTrainBlocks = append(user.CompleteTrainBlocks, block)
 }
 
 func (user *User) inactivateWorkItem(item WorkItem) error {
@@ -322,11 +332,15 @@ func (db *LabsDB) getAllLabs() []*Lab {
 func (db *LabsDB) getUser(labKey, username string) (User, error) {
 	lab, err := db.getLab(labKey)
 	if err != nil {
+		fmt.Println("getLab in getUser failed")
 		return User{}, err
 	}
 
 	user, exists := lab.Users[username]
 	if !exists {
+		fmt.Println("lab[username] map access failed")
+		fmt.Printf("tried to find username: ")
+		fmt.Println(username)
 		return user, ErrUserDoesntExist
 	}
 	return user, nil
@@ -355,4 +369,32 @@ func (db *LabsDB) getCompletedBlocks(labKey string) ([]string, error) {
 		}
 	}
 	return blocks, nil
+}
+
+func (db *LabsDB) getCompleteTrainBlocks(labKey string) (BlockGroup, error) {
+	var blocks BlockGroup
+	lab, err := db.getLab(labKey)
+	if err != nil {
+		return blocks, err
+	}
+	for _, value := range lab.Users {
+		for _, block := range value.CompleteTrainBlocks {
+			blocks.append(block)
+		}
+	}
+	return blocks, nil
+}
+
+func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
+	var block Block
+	user, err := db.getUser(labKey, username)
+	if err != nil {
+		return block, err
+	}
+	for _, item := range user.CompleteTrainBlocks {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+	return block, ErrTrainBlockNotFound
 }

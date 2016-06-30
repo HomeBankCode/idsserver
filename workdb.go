@@ -37,12 +37,15 @@ a single CLAN file. Each WorkItem signifies a single
 block from that specific clan file
 */
 type WorkItem struct {
-	ID         string `json:"id"`
-	FileName   string `json:"filename"`
-	Block      int    `json:"block"`
-	Active     bool   `json:"active"`
-	BlockPath  string `json:"block-path"`
-	TimesCoded int    `json:"times-coded"`
+	ID              string `json:"id"`
+	FileName        string `json:"filename"`
+	Block           int    `json:"block"`
+	Active          bool   `json:"active"`
+	BlockPath       string `json:"block-path"`
+	TimesCoded      int    `json:"times-coded"`
+	Training        bool   `json:"training"`
+	Reliability     bool   `json:"reliability"`
+	TrainingPackNum int    `json:"train-pack-num"`
 }
 
 // WorkDB is a wrapper around a boltDB
@@ -273,6 +276,10 @@ func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool 
 	} else if item.TimesCoded != 0 {
 		fmt.Println("item has been coded already")
 		return false
+	} else if item.Training {
+		return false
+	} else if item.Reliability {
+		return false
 	} else if userHasBlockFromFile(item, request, user) {
 		fmt.Println("user has block from this file")
 		return false
@@ -350,14 +357,6 @@ func (db *WorkDB) persistWorkItemMap(itemMap WorkItemMap) {
 	}
 }
 
-// func getCompleteLabBlocks(request IDSRequest) BlockGroup {
-// 	var blocks BlockGroup
-//
-// 	for _, item := range workItemMap {
-// 		if item.
-// 	}
-// }
-
 func getAllCompleteBlockIDs() []string {
 	var blockIDs []string
 	for _, item := range workItemMap {
@@ -366,4 +365,86 @@ func getAllCompleteBlockIDs() []string {
 		}
 	}
 	return blockIDs
+}
+
+// func getAllCompleteTrainBlockIDs() []string {
+// 	var blockIDs []string
+// 	for _, item := range workItemMap {
+// 		if item.Training {
+// 			blockIDs = append(blockIDs, item.ID)
+// 		}
+// 	}
+// 	return blockIDs
+// }
+
+func chooseTrainingWorkItem(request IDSRequest) (WorkItem, error) {
+	var workItem WorkItem
+	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
+	if getUsrErr != nil {
+		return WorkItem{}, ErrUserDoesntExist
+	}
+
+	for _, item := range workItemMap {
+		if blockAppropriateForUserTraining(item, request, user) {
+			activateWorkItem(item, request)
+			fmt.Println("Selected Item: ")
+			fmt.Println(item)
+			return item, nil
+		}
+	}
+
+	fmt.Println("\nRan out of unique items for this user")
+	return workItem, ErrRanOutOfItems
+}
+
+func chooseReliabilityWorkItem(request IDSRequest) (WorkItem, error) {
+	var workItem WorkItem
+	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
+	if getUsrErr != nil {
+		return WorkItem{}, ErrUserDoesntExist
+	}
+	for _, item := range workItemMap {
+
+		if blockAppropriateForUserReliability(item, request, user) {
+			activateWorkItem(item, request)
+			fmt.Println("Selected Item: ")
+			fmt.Println(item)
+			return item, nil
+		}
+	}
+
+	fmt.Println("\nRan out of unique items for this user")
+	return workItem, ErrRanOutOfItems
+}
+
+func blockAppropriateForUserTraining(item WorkItem, request IDSRequest, user User) bool {
+	if !item.Training {
+		return false
+	} else if userHasThisBlock(item, request, user) {
+		fmt.Println("user has this block already")
+		return false
+	}
+	return true
+}
+
+func blockAppropriateForUserReliability(item WorkItem, request IDSRequest, user User) bool {
+	if !item.Reliability {
+		return false
+	} else if item.TimesCoded != 0 {
+		fmt.Println("item has been coded already")
+		return false
+	} else if userHasBlockFromFile(item, request, user) {
+		fmt.Println("user has block from this file")
+		return false
+	}
+	return true
+}
+
+func userHasThisBlock(item WorkItem, request IDSRequest, user User) bool {
+	for _, userItem := range user.ActiveWorkItems {
+		if userItem.ID == item.ID {
+			return true
+		}
+	}
+	return false
 }

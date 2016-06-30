@@ -39,15 +39,18 @@ func (bg *BlockGroup) append(block Block) {
 
 // Block represents a CLAN conversation block
 type Block struct {
-	ClanFile  string `json:"clan-file"`
-	Index     int    `json:"block-index"`
-	Clips     []Clip `json:"clips"`
-	FanOrMan  bool   `json:"fan-or-man"`
-	DontShare bool   `json:"dont-share"`
-	ID        string `json:"id"`
-	Coder     string `json:"coder"`
-	LabKey    string `json:"lab-key"`
-	LabName   string `json:"lab-name"`
+	ClanFile    string `json:"clan-file"`
+	Index       int    `json:"block-index"`
+	Clips       []Clip `json:"clips"`
+	FanOrMan    bool   `json:"fan-or-man"`
+	DontShare   bool   `json:"dont-share"`
+	ID          string `json:"id"`
+	Coder       string `json:"coder"`
+	LabKey      string `json:"lab-key"`
+	LabName     string `json:"lab-name"`
+	Username    string `json:"username"`
+	Training    bool   `json:"training"`
+	Reliability bool   `json:"reliability"`
 }
 
 func (block *Block) encode() ([]byte, error) {

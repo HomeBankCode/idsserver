@@ -17,6 +17,9 @@ audio_formats = [".mp3", ".wav"]
 
 block_num_regx = re.compile("(Conversation )+(\d+)")
 
+training = False
+reliability = False
+
 class Block:
     def __init__(self, index, clan_file):
 
@@ -288,7 +291,8 @@ class Parser:
                         writer.writerow([clip.label_date, clip.coder, clip.clan_file,
                                          clip.parent_audio_path, clip.block_index,
                                          clip.timestamp, clip.clip_index,clip.clip_tier,
-                                         clip.classification, multitier_parent, dont_share])
+                                         clip.classification, multitier_parent, dont_share,
+                                         training, reliability])
 def check_dir(path):
     files = os.listdir(path)
 
@@ -325,11 +329,16 @@ def print_manifest(clips_dir):
                     clan_file = os.path.basename(root)
                     block_index = file.replace(".zip", "")
                     block_path = os.path.join(root, file)
-                    output.append([clan_file, block_index, block_path])
+                    if training:
+                        output.append([clan_file, block_index, block_path, "true", "false"])
+                    elif reliability:
+                        output.append([clan_file, block_index, block_path, "false", "true"])
+                    else:
+                        output.append([clan_file, block_index, block_path, "false", "false"])
 
     with open(os.path.join(clips_dir, "path_manifest.csv"), "wb") as output_file:
         writer = csv.writer(output_file)
-        writer.writerow(["clanfile", "block_index", "block_path"])
+        writer.writerow(["clanfile", "block_index", "block_path", "training", "reliability"])
         writer.writerows(output)
 
 
@@ -340,6 +349,12 @@ if __name__ == "__main__":
 
     start_dir = sys.argv[1]
     clips_dir = sys.argv[2]
+
+    if "--training" in sys.argv:
+        training = True
+    if "--reliability" in sys.argv:
+        reliability = True
+
 
     jobs = []
     for root, dirs, files in os.walk(start_dir):
@@ -361,4 +376,3 @@ if __name__ == "__main__":
     zip_block_dirs(clips_dir)
 
     print_manifest(clips_dir)
-

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -14,8 +15,10 @@ CLAN files and blocks (audio clips) which
 are going to be served to users.
 */
 type DataGroup struct {
-	ClanFile   string
-	BlockPaths map[int]string
+	ClanFile    string
+	Training    bool
+	Reliability bool
+	BlockPaths  map[int]string
 }
 
 /*
@@ -77,45 +80,32 @@ func fillDataMap() DataMap {
 			}
 			// set new BlockPaths index/path
 			currDataGroup.BlockPaths[index] = line[2]
+			// set Training and Reliability variables
+			training, trainErr := strconv.ParseBool(line[3])
+
+			currDataGroup.Training = training
+			if trainErr != nil {
+				log.Fatal("training parsing error")
+			}
+			reliability, reliaErr := strconv.ParseBool(line[4])
+			if reliaErr != nil {
+				log.Fatal("reliability parsing error")
+			}
+			currDataGroup.Reliability = reliability
+
 		} else {
 			index, err := strconv.Atoi(line[1])
 			if err != nil {
 				log.Fatal(err)
 			}
 			currDataGroup.BlockPaths[index] = line[2]
+
+		}
+		if currDataGroup.Training {
+			fmt.Println(currDataGroup)
 		}
 	}
 	return dataMap
-}
-
-/*
-partitionIntoWorkItems breaks up the DataMap into
-an array of WorkItem's and returns it
-*/
-func (dataMap DataMap) partitionIntoWorkItems() []WorkItem {
-	var (
-		workItems    []WorkItem
-		currWorkItem = WorkItem{}
-	)
-
-	for key, value := range dataMap {
-		currWorkItem = WorkItem{}
-		currWorkItem.FileName = key
-
-		for blockKey, blockValue := range value.BlockPaths {
-
-			currWorkItem.ID = key + ":::" + strconv.Itoa(blockKey)
-			currWorkItem.Block = blockKey
-			currWorkItem.Active = false
-			currWorkItem.FileName = value.ClanFile
-			currWorkItem.BlockPath = blockValue
-
-			workItems = append(workItems, currWorkItem)
-			currWorkItem = WorkItem{FileName: value.ClanFile}
-
-		}
-	}
-	return workItems
 }
 
 /*
@@ -131,6 +121,8 @@ func (dataMap DataMap) partitionIntoWorkItemsMap() WorkItemMap {
 	for key, value := range dataMap {
 		currWorkItem = WorkItem{}
 		currWorkItem.FileName = key
+		currWorkItem.Training = value.Training
+		currWorkItem.Reliability = value.Reliability
 
 		for blockKey, blockValue := range value.BlockPaths {
 			currWorkItem = WorkItem{}
@@ -140,9 +132,13 @@ func (dataMap DataMap) partitionIntoWorkItemsMap() WorkItemMap {
 			currWorkItem.Active = false
 			currWorkItem.FileName = value.ClanFile
 			currWorkItem.BlockPath = blockValue
+			currWorkItem.Training = value.Training
+			currWorkItem.Reliability = value.Reliability
 
 			workItems[currWorkItem.ID] = currWorkItem
-
+			if currWorkItem.Training {
+				fmt.Println(currWorkItem)
+			}
 		}
 	}
 	return workItems
