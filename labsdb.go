@@ -37,6 +37,11 @@ var (
 	// this training block's labels stored in it's CompleteTrainBlocks
 	// field
 	ErrTrainBlockNotFound = errors.New("Training block not found for this user")
+
+	// ErrReliaBlockNotFound means that this user doesn't have
+	// this reliability block's labels stored in it's CompleteRelBlocks
+	// field
+	ErrReliaBlockNotFound = errors.New("Reliability block not found for this user")
 )
 
 // Lab is a JSON serialization
@@ -54,6 +59,7 @@ type User struct {
 	ActiveWorkItems     []WorkItem `json:"active-work-items"`
 	PastWorkItems       []WorkItem `json:"finished-work-items"`
 	CompleteTrainBlocks []Block    `json:"complete-train-blocks"`
+	CompleteRelBlocks   []Block    `json:"complete-reliability-blocks"`
 }
 
 func (user *User) addWorkItem(item WorkItem) {
@@ -62,6 +68,10 @@ func (user *User) addWorkItem(item WorkItem) {
 
 func (user *User) addCompleteTrainBlock(block Block) {
 	user.CompleteTrainBlocks = append(user.CompleteTrainBlocks, block)
+}
+
+func (user *User) addCompleteRelBlock(block Block) {
+	user.CompleteRelBlocks = append(user.CompleteRelBlocks, block)
 }
 
 func (user *User) inactivateWorkItem(item WorkItem) error {
@@ -385,6 +395,20 @@ func (db *LabsDB) getCompleteTrainBlocks(labKey string) (BlockGroup, error) {
 	return blocks, nil
 }
 
+func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockGroup, error) {
+	var blocks BlockGroup
+	lab, err := db.getLab(labKey)
+	if err != nil {
+		return blocks, err
+	}
+	for _, value := range lab.Users {
+		for _, block := range value.CompleteRelBlocks {
+			blocks.append(block)
+		}
+	}
+	return blocks, nil
+}
+
 func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
 	var block Block
 	user, err := db.getUser(labKey, username)
@@ -397,4 +421,18 @@ func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
 		}
 	}
 	return block, ErrTrainBlockNotFound
+}
+
+func (db *LabsDB) getReliaBlock(labKey, username, id string) (Block, error) {
+	var block Block
+	user, err := db.getUser(labKey, username)
+	if err != nil {
+		return block, err
+	}
+	for _, item := range user.CompleteRelBlocks {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+	return block, ErrReliaBlockNotFound
 }

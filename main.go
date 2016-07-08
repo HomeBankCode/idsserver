@@ -213,6 +213,7 @@ func main() {
 	http.HandleFunc("/getlablabels/", getLabLabelsHandler)
 	http.HandleFunc("/getalllabels/", getAllLabelsHandler)
 	http.HandleFunc("/gettrainlabels/", getTrainingLabelsHandler)
+	http.HandleFunc("/getrelialabels/", getReliabilityHandler)
 	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":4000", nil)

@@ -274,7 +274,8 @@ class Parser:
         with open(self.classification_output, "wb") as output:
             writer = csv.writer(output)
             writer.writerow(["date", "coder", "clan_file", "audiofile", "block",
-                             "timestamp", "clip", "tier", "label", "multi-tier-parent", "dont_share"])
+                             "timestamp", "clip", "tier", "label", "multi-tier-parent",
+                             "dont_share", "training", "reliability"])
 
             for block in self.clip_blocks:
                 if block.index == block_num:

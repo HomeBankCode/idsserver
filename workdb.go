@@ -367,16 +367,6 @@ func getAllCompleteBlockIDs() []string {
 	return blockIDs
 }
 
-// func getAllCompleteTrainBlockIDs() []string {
-// 	var blockIDs []string
-// 	for _, item := range workItemMap {
-// 		if item.Training {
-// 			blockIDs = append(blockIDs, item.ID)
-// 		}
-// 	}
-// 	return blockIDs
-// }
-
 func chooseTrainingWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
 	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
@@ -430,10 +420,10 @@ func blockAppropriateForUserTraining(item WorkItem, request IDSRequest, user Use
 func blockAppropriateForUserReliability(item WorkItem, request IDSRequest, user User) bool {
 	if !item.Reliability {
 		return false
-	} else if item.TimesCoded != 0 {
-		fmt.Println("item has been coded already")
+	} else if userPreviouslyCodedReliability(item, request, user) {
+		fmt.Println("item has been coded already by this user")
 		return false
-	} else if userHasBlockFromFile(item, request, user) {
+	} else if userHasThisBlock(item, request, user) {
 		fmt.Println("user has block from this file")
 		return false
 	}
@@ -442,6 +432,20 @@ func blockAppropriateForUserReliability(item WorkItem, request IDSRequest, user 
 
 func userHasThisBlock(item WorkItem, request IDSRequest, user User) bool {
 	for _, userItem := range user.ActiveWorkItems {
+		if userItem.ID == item.ID {
+			return true
+		}
+	}
+	return false
+}
+
+/*
+checks if this reliability block has been previously coded
+by this particular user. Ensures that users only get blocks
+they've never coded before.
+*/
+func userPreviouslyCodedReliability(item WorkItem, request IDSRequest, user User) bool {
+	for _, userItem := range user.CompleteRelBlocks {
 		if userItem.ID == item.ID {
 			return true
 		}

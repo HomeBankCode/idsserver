@@ -271,6 +271,25 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if block.Training {
+		inactivateWorkItem(workItem, request)
+
+		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
+		if getUserErr != nil {
+			fmt.Println("getUser failed")
+			http.Error(w, getUserErr.Error(), 400)
+			return
+		}
+		user.addCompleteTrainBlock(block)
+
+		setUserErr := labsDB.setUser(user)
+		if setUserErr != nil {
+			fmt.Println("setUser failed")
+			http.Error(w, getUserErr.Error(), 400)
+			return
+		}
+	} else if block.Reliability {
+		inactivateWorkItem(workItem, request)
+
 		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
 		if getUserErr != nil {
 			fmt.Println("getUser failed")
@@ -278,25 +297,22 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user.addCompleteTrainBlock(block)
-		inactivateWorkItem(workItem, request)
+		user.addCompleteRelBlock(block)
+
 		setUserErr := labsDB.setUser(user)
 		if setUserErr != nil {
 			fmt.Println("setUser failed")
 			http.Error(w, getUserErr.Error(), 400)
 			return
 		}
-
 	} else {
 		addBlockErr := labelsDB.addBlock(block)
 		if addBlockErr != nil {
 			http.Error(w, addBlockErr.Error(), 400)
 			return
 		}
-
+		inactivateWorkItem(workItem, request)
 	}
-
-	inactivateWorkItem(workItem, request)
 
 }
 
@@ -330,6 +346,15 @@ func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Println(trainBlock)
 		json.NewEncoder(w).Encode(trainBlock)
+		return
+	} else if workItemReq.Reliability {
+		reliaBlock, reliaBlockErr := labsDB.getReliaBlock(workItemReq.LabKey, workItemReq.Username, workItemReq.ItemID)
+		if reliaBlockErr != nil {
+			http.Error(w, reliaBlockErr.Error(), 400)
+			return
+		}
+		fmt.Println(reliaBlock)
+		json.NewEncoder(w).Encode(reliaBlock)
 		return
 	}
 
@@ -504,4 +529,43 @@ func getTrainingLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(blocks)
+}
+
+func getReliabilityHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for all training blocks")
+	var idsRequest IDSRequest
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &idsRequest)
+	fmt.Println(idsRequest)
+
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(idsRequest.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
+	blocks, getBlocksErr := labsDB.getCompleteReliaBlocks(idsRequest.LabKey)
+	if getBlocksErr != nil {
+		http.Error(w, getBlocksErr.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(blocks)
+
 }

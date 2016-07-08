@@ -37,6 +37,19 @@ func (bg *BlockGroup) append(block Block) {
 	bg.Blocks = append(bg.Blocks, block)
 }
 
+/*
+BlockData is a container struct for multiple instances
+of the same block. So you can have a single block coded
+multiple times by different (or identical) users.
+*/
+type BlockData struct {
+	Blocks []Block `json:"blocks"`
+}
+
+func (group *BlockData) addBlock(block Block) {
+
+}
+
 // Block represents a CLAN conversation block
 type Block struct {
 	ClanFile    string `json:"clan-file"`
