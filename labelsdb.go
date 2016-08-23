@@ -26,6 +26,9 @@ var (
 	// ErrAddBlockFailed means that something prevented a Block from
 	// being added to a BlockGroup
 	ErrAddBlockFailed = errors.New("Adding block to BlockGroup failed")
+
+	// ErrLabNotInBlockGroup means that this lab isn't in the BlockGroup
+	ErrLabNotInBlockGroup = errors.New("Lab not in BlockGroup")
 )
 
 const (
@@ -40,22 +43,45 @@ type LabelsDB struct {
 	db *bolt.DB
 }
 
-// // BlockGroup is a collection of blocks
-// type BlockGroup struct {
-// 	Blocks []BlockGroup `json:"blocks"`
-// }
-//
-// func (bg *BlockGroup) append(block Block) {
-// 	bg.Blocks = append(bg.Blocks, block)
-// }
-
 /*
 BlockGroupArray is an array of BlockGroups
 */
 type BlockGroupArray []BlockGroup
 
-func (blockArray *BlockGroupArray) addBlockGroup(group BlockGroup) {
-	*blockArray = append(*blockArray, group)
+func (blockGroupArray *BlockGroupArray) addBlockGroup(group BlockGroup) {
+	*blockGroupArray = append(*blockGroupArray, group)
+}
+
+func (blockGroupArray *BlockGroupArray) filterLab(labKey string) (BlockArray, error) {
+	var blockArray BlockArray
+
+	for _, group := range *blockGroupArray {
+		for _, block := range group.Blocks {
+			if block.LabKey == labKey {
+				blockArray.addBlock(block)
+			}
+		}
+	}
+	if len(blockArray) == 0 {
+		return blockArray, ErrLabNotInBlockGroup
+	}
+	return blockArray, nil
+}
+
+func (blockGroupArray *BlockGroupArray) filterUser(username string) (BlockArray, error) {
+	var blockArray BlockArray
+
+	for _, group := range *blockGroupArray {
+		for _, block := range group.Blocks {
+			if block.Coder == username {
+				blockArray.addBlock(block)
+			}
+		}
+	}
+	if len(blockArray) == 0 {
+		return blockArray, ErrLabNotInBlockGroup
+	}
+	return blockArray, nil
 }
 
 /*
@@ -241,63 +267,15 @@ func (db *LabelsDB) Close() {
 	db.db.Close()
 }
 
-// func (db *LabelsDB) addBlock(block Block) error {
-// 	encodedBlock, err := block.encode()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	updateErr := db.db.Update(func(tx *bolt.Tx) error {
-// 		bucket := tx.Bucket([]byte(labelsBucket))
-// 		err := bucket.Put([]byte(block.ID), encodedBlock)
-// 		return err
-// 	})
-// 	return updateErr
-// }
-
-// func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
-//
-// 	fmt.Println("Trying to retrieve block data: ")
-// 	fmt.Println(blockID)
-//
-// 	var exists bool
-// 	var BlockGroup []byte
-//
-// 	db.db.View(func(tx *bolt.Tx) error {
-// 		bucket := tx.Bucket([]byte(labelsBucket))
-// 		BlockGroup = bucket.Get([]byte(blockID))
-//
-// 		// lab key doesn't exist
-// 		if BlockGroup == nil {
-// 			exists = false
-// 		} else {
-// 			exists = true
-// 		}
-// 		return nil
-// 	})
-//
-// 	if !exists {
-// 		return &Block{}, ErrWorkItemDoesntExist
-// 	}
-//
-// 	block, err := decodeBlockJSON(BlockGroup)
-// 	//fmt.Println(labData)
-// 	if err != nil {
-// 		return &Block{}, ErrWorkItemDoesntExist
-// 	}
-// 	return block, nil
-// }
-
-func (db *LabelsDB) getBlockGroup(blockIDs []string) ([]BlockGroup, error) {
-	var blocks []BlockGroup
+func (db *LabelsDB) getBlockGroup(blockIDs []string) (BlockGroupArray, error) {
+	var blocks BlockGroupArray
 
 	for _, id := range blockIDs {
 		block, err := db.getBlock(id)
 		if err != nil {
 			return blocks, ErrCouldntFindLabeledBlock
 		}
-		blocks = append(blocks, *block)
-		//blocks.append(*block)
+		blocks.addBlockGroup(*block)
 	}
 	return blocks, nil
 }
@@ -393,9 +371,31 @@ func (db *LabelsDB) getBlock(blockID string) (*BlockGroup, error) {
 	}
 
 	blockGroup, err := decodeBlockGroupJSON(groupData)
-	//fmt.Println(labData)
 	if err != nil {
 		return &BlockGroup{}, ErrWorkItemDoesntExist
 	}
 	return blockGroup, nil
+}
+
+func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
+	var blockGroupArray BlockGroupArray
+
+	scanErr := db.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(labelsBucket))
+		c := b.Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			blockGroup, groupDecodeErr := decodeBlockGroupJSON(value)
+			if groupDecodeErr != nil {
+				return groupDecodeErr
+			}
+			blockGroupArray.addBlockGroup(*blockGroup)
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+		}
+		return nil
+	})
+	if scanErr != nil {
+		return blockGroupArray, scanErr
+	}
+	return blockGroupArray, nil
 }

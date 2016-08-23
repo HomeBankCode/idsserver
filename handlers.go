@@ -399,7 +399,13 @@ func getLabLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(blocks)
+	labBlocks, labBlocksErr := blocks.filterLab(idsRequest.LabKey)
+	if labBlocksErr != nil {
+		http.Error(w, labBlocksErr.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(labBlocks)
 }
 
 func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {
@@ -431,8 +437,8 @@ func getAllLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockIDs := getAllCompleteBlockIDs()
-	blocks, getBlocksErr := labelsDB.getBlockGroup(blockIDs)
+	//blockIDs := getAllCompleteBlockIDs()
+	blocks, getBlocksErr := labelsDB.getAllBlockGroups()
 
 	if getBlocksErr != nil {
 		http.Error(w, getBlocksErr.Error(), 400)
