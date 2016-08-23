@@ -1,0 +1,11 @@
+date,coder,clan_file,audiofile,block,timestamp,clip,tier,label,multi-tier-parent,dont_share,training,reliability
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25757400_25759070,1,CHN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25759070_25760130,2,OLN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25760130_25761520,3,FAN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25761520_25762930,4,OLN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25762930_25763730,5,NOF,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25763730_25764730,6,FAN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25764730_25765730,7,TVN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25765730_25767580,8,OLF,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25767580_25770130,9,MAN,,N,False,True,False
+,,train_Block6_VanDam2.cha,e20140122_104332_009230.mp3,598,25770130_25771490,10,FAN,,N,False,True,False

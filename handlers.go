@@ -93,20 +93,22 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 	if blockRequest.Training {
 		workItem, chooseWIErr = chooseTrainingWorkItem(blockRequest)
+		fmt.Println("got past chooseTrainingWorkItem()")
 		if chooseWIErr != nil {
-			http.Error(w, err.Error(), 404)
+			fmt.Println("returning error http code from chooseTrainingWorkItem()")
+			http.Error(w, chooseWIErr.Error(), 404)
 			return
 		}
 	} else if blockRequest.Reliability {
 		workItem, chooseWIErr = chooseReliabilityWorkItem(blockRequest)
 		if chooseWIErr != nil {
-			http.Error(w, err.Error(), 404)
+			http.Error(w, chooseWIErr.Error(), 404)
 			return
 		}
 	} else {
 		workItem, chooseWIErr = chooseUniqueWorkItem(blockRequest)
 		if chooseWIErr != nil {
-			http.Error(w, err.Error(), 404)
+			http.Error(w, chooseWIErr.Error(), 404)
 			return
 		}
 	}
@@ -287,6 +289,7 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, getUserErr.Error(), 400)
 			return
 		}
+
 	} else if block.Reliability {
 		inactivateWorkItem(workItem, request)
 
@@ -314,6 +317,11 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		inactivateWorkItem(workItem, request)
 	}
 
+	addBlockErr := labelsDB.addBlock(block)
+	if addBlockErr != nil {
+		http.Error(w, addBlockErr.Error(), 400)
+		return
+	}
 }
 
 func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
@@ -338,34 +346,15 @@ func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(jsonDataFromHTTP, &workItemReq)
 	fmt.Println(workItemReq)
 
-	if workItemReq.Training {
-		trainBlock, trainBlockErr := labsDB.getTrainBlock(workItemReq.LabKey, workItemReq.Username, workItemReq.ItemID)
-		if trainBlockErr != nil {
-			http.Error(w, trainBlockErr.Error(), 400)
-			return
-		}
-		fmt.Println(trainBlock)
-		json.NewEncoder(w).Encode(trainBlock)
-		return
-	} else if workItemReq.Reliability {
-		reliaBlock, reliaBlockErr := labsDB.getReliaBlock(workItemReq.LabKey, workItemReq.Username, workItemReq.ItemID)
-		if reliaBlockErr != nil {
-			http.Error(w, reliaBlockErr.Error(), 400)
-			return
-		}
-		fmt.Println(reliaBlock)
-		json.NewEncoder(w).Encode(reliaBlock)
-		return
-	}
-
-	block, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
+	blockGroup, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
 	if getBlockErr != nil {
 		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
 		return
 	}
+	blocks := blockGroup.getUsersBlocks(workItemReq.LabKey, workItemReq.Username)
 
-	fmt.Println(block)
-	json.NewEncoder(w).Encode(block)
+	fmt.Println(blocks)
+	json.NewEncoder(w).Encode(blocks)
 }
 
 func getLabLabelsHandler(w http.ResponseWriter, r *http.Request) {

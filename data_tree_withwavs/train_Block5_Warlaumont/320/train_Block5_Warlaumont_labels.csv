@@ -1,0 +1,6 @@
+date,coder,clan_file,audiofile,block,timestamp,clip,tier,label,multi-tier-parent,dont_share,training,reliability
+,,train_Block5_Warlaumont.cha,0530_000304.mp3,320,13316970_13317970,1,FAN,,N,False,True,False
+,,train_Block5_Warlaumont.cha,0530_000304.mp3,320,13317970_13320510,2,OLN,,N,False,True,False
+,,train_Block5_Warlaumont.cha,0530_000304.mp3,320,13320510_13321980,3,MAN,,N,False,True,False
+,,train_Block5_Warlaumont.cha,0530_000304.mp3,320,13321980_13322770,4,CHN,,N,False,True,False
+,,train_Block5_Warlaumont.cha,0530_000304.mp3,320,13322770_13323800,5,MAN,,N,False,True,False

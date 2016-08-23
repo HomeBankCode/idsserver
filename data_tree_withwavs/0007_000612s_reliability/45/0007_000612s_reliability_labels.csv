@@ -1,0 +1,15 @@
+date,coder,clan_file,audiofile,block,timestamp,clip,tier,label,multi-tier-parent,dont_share,training,reliability
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1305400_1306400,1,FAN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1306400_1309510,2,SIL,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1309510_1310510,3,CXN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1310510_1312720,4,MAF,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1312720_1313520,5,CXN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1313520_1315510,6,FAN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1315510_1318230,7,TVF,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1318230_1318990,8,OLN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1318990_1320380,9,TVF,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1320380_1321940,10,FAN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1321940_1323620,11,TVF,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1323620_1324700,12,FAN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1324700_1325740,13,TVN,,N,False,False,True
+,,0007_000612s_reliability.cha,0007_000612s.wav,45,1325740_1327120,14,FAN,,N,False,False,True

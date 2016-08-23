@@ -446,7 +446,7 @@ they've never coded before.
 */
 func userPreviouslyCodedReliability(item WorkItem, request IDSRequest, user User) bool {
 	for _, userItem := range user.CompleteRelBlocks {
-		if userItem.ID == item.ID {
+		if userItem == item.ID {
 			return true
 		}
 	}

@@ -58,8 +58,8 @@ type User struct {
 	ParentLab           string     `json:"parent-lab"`
 	ActiveWorkItems     []WorkItem `json:"active-work-items"`
 	PastWorkItems       []WorkItem `json:"finished-work-items"`
-	CompleteTrainBlocks []Block    `json:"complete-train-blocks"`
-	CompleteRelBlocks   []Block    `json:"complete-reliability-blocks"`
+	CompleteTrainBlocks []string   `json:"complete-train-blocks"`
+	CompleteRelBlocks   []string   `json:"complete-reliability-blocks"`
 }
 
 func (user *User) addWorkItem(item WorkItem) {
@@ -67,11 +67,23 @@ func (user *User) addWorkItem(item WorkItem) {
 }
 
 func (user *User) addCompleteTrainBlock(block Block) {
-	user.CompleteTrainBlocks = append(user.CompleteTrainBlocks, block)
+	// make sure not to add an ID more than once
+	for _, id := range user.CompleteTrainBlocks {
+		if block.ID == id {
+			return
+		}
+	}
+	// add ID
+	user.CompleteTrainBlocks = append(user.CompleteTrainBlocks, block.ID)
 }
 
 func (user *User) addCompleteRelBlock(block Block) {
-	user.CompleteRelBlocks = append(user.CompleteRelBlocks, block)
+	for _, id := range user.CompleteRelBlocks {
+		if block.ID == id {
+			return
+		}
+	}
+	user.CompleteRelBlocks = append(user.CompleteRelBlocks, block.ID)
 }
 
 func (user *User) inactivateWorkItem(item WorkItem) error {
@@ -381,58 +393,58 @@ func (db *LabsDB) getCompletedBlocks(labKey string) ([]string, error) {
 	return blocks, nil
 }
 
-func (db *LabsDB) getCompleteTrainBlocks(labKey string) (BlockGroup, error) {
-	var blocks BlockGroup
+func (db *LabsDB) getCompleteTrainBlocks(labKey string) (BlockIDList, error) {
+	var blocks BlockIDList
 	lab, err := db.getLab(labKey)
 	if err != nil {
 		return blocks, err
 	}
 	for _, value := range lab.Users {
 		for _, block := range value.CompleteTrainBlocks {
-			blocks.append(block)
+			blocks.addID(block)
 		}
 	}
 	return blocks, nil
 }
 
-func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockGroup, error) {
-	var blocks BlockGroup
+func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockIDList, error) {
+	var blocks BlockIDList
 	lab, err := db.getLab(labKey)
 	if err != nil {
 		return blocks, err
 	}
 	for _, value := range lab.Users {
 		for _, block := range value.CompleteRelBlocks {
-			blocks.append(block)
+			blocks.addID(block)
 		}
 	}
 	return blocks, nil
 }
 
-func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
-	var block Block
-	user, err := db.getUser(labKey, username)
-	if err != nil {
-		return block, err
-	}
-	for _, item := range user.CompleteTrainBlocks {
-		if item.ID == id {
-			return item, nil
-		}
-	}
-	return block, ErrTrainBlockNotFound
-}
+// func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
+// 	var block Block
+// 	user, err := db.getUser(labKey, username)
+// 	if err != nil {
+// 		return block, err
+// 	}
+// 	for _, blockID := range user.CompleteTrainBlocks {
+// 		if blockID == id {
+// 			return blockID, nil
+// 		}
+// 	}
+// 	return block, ErrTrainBlockNotFound
+// }
 
-func (db *LabsDB) getReliaBlock(labKey, username, id string) (Block, error) {
-	var block Block
-	user, err := db.getUser(labKey, username)
-	if err != nil {
-		return block, err
-	}
-	for _, item := range user.CompleteRelBlocks {
-		if item.ID == id {
-			return item, nil
-		}
-	}
-	return block, ErrReliaBlockNotFound
-}
+// func (db *LabsDB) getReliaBlock(labKey, username, id string) (Block, error) {
+// 	var block Block
+// 	user, err := db.getUser(labKey, username)
+// 	if err != nil {
+// 		return block, err
+// 	}
+// 	for _, item := range user.CompleteRelBlocks {
+// 		if item.ID == id {
+// 			return item, nil
+// 		}
+// 	}
+// 	return block, ErrReliaBlockNotFound
+// }

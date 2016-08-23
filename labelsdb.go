@@ -12,15 +12,27 @@ import (
 var (
 	// path to the LabsDB file
 	labelsDBPath = mainConfig.LabelsDBPath
+)
 
+var (
 	// ErrCouldntFindLabeledBlock means a block ID wasn't
 	// found in the database
 	ErrCouldntFindLabeledBlock = errors.New("Couldn't Find Labeled Block")
+
+	// ErrBlockGroupFull means that this block has already been coded
+	// numBlockPasses times.
+	ErrBlockGroupFull = errors.New("This block has already been coded through all passes")
+
+	// ErrAddBlockFailed means that something prevented a Block from
+	// being added to a BlockGroup
+	ErrAddBlockFailed = errors.New("Adding block to BlockGroup failed")
 )
 
 const (
 	// name of the database's labels bucket
 	labelsBucket = "Labels"
+
+	numRealBlockPasses = 2
 )
 
 // LabelsDB is a wrapper around a boltDB
@@ -28,26 +40,115 @@ type LabelsDB struct {
 	db *bolt.DB
 }
 
-// BlockGroup is a collection of blocks
-type BlockGroup struct {
-	Blocks []Block `json:"blocks"`
-}
+// // BlockGroup is a collection of blocks
+// type BlockGroup struct {
+// 	Blocks []BlockGroup `json:"blocks"`
+// }
+//
+// func (bg *BlockGroup) append(block Block) {
+// 	bg.Blocks = append(bg.Blocks, block)
+// }
 
-func (bg *BlockGroup) append(block Block) {
-	bg.Blocks = append(bg.Blocks, block)
+/*
+BlockGroupArray is an array of BlockGroups
+*/
+type BlockGroupArray []BlockGroup
+
+func (blockArray *BlockGroupArray) addBlockGroup(group BlockGroup) {
+	*blockArray = append(*blockArray, group)
 }
 
 /*
-BlockData is a container struct for multiple instances
+BlockArray is an array of Blocks
+*/
+type BlockArray []Block
+
+func (blockArray *BlockArray) addBlock(block Block) {
+	*blockArray = append(*blockArray, block)
+}
+
+/*
+BlockIDList is a list of Block ID's.
+It's used for looking up the actual Block
+data.
+*/
+type BlockIDList []string
+
+func (idList *BlockIDList) addID(id string) {
+	*idList = append(*idList, id)
+}
+
+/*
+BlockGroup is a container struct for multiple instances
 of the same block. So you can have a single block coded
 multiple times by different (or identical) users.
 */
-type BlockData struct {
-	Blocks []Block `json:"blocks"`
+type BlockGroup struct {
+	ID          string  `json:"block-id"`
+	Blocks      []Block `json:"blocks"`
+	Training    bool    `json:"training"`
+	Reliability bool    `json:"reliability"`
 }
 
-func (group *BlockData) addBlock(block Block) {
+func (group *BlockGroup) addBlock(block Block) error {
+	if block.ID != group.ID {
+		return ErrAddBlockFailed
+	}
+	if !block.Training && !block.Reliability {
 
+		if len(group.Blocks) == numRealBlockPasses {
+			return ErrBlockGroupFull
+		}
+		group.Blocks = append(group.Blocks, block)
+		return nil
+	} else if block.Reliability {
+		if group.coderPresent(block.LabKey, block.Coder) {
+			return ErrBlockGroupFull
+		}
+		group.Blocks = append(group.Blocks, block)
+		return nil
+
+	} else if block.Training {
+		group.Blocks = append(group.Blocks, block)
+		return nil
+	}
+	return ErrAddBlockFailed
+}
+
+func (group *BlockGroup) getUsersBlocks(labKey, username string) []Block {
+	var blocks []Block
+	for _, item := range group.Blocks {
+		if item.LabKey == labKey && item.Coder == username {
+			blocks = append(blocks, item)
+		}
+	}
+	return blocks
+}
+
+func (group *BlockGroup) coderPresent(labKey, coder string) bool {
+	for _, element := range group.Blocks {
+		if element.LabKey == labKey && element.Coder == coder {
+			return true
+		}
+	}
+	return false
+}
+
+func (group *BlockGroup) encode() ([]byte, error) {
+	data, err := json.MarshalIndent(group, "", "  ")
+	if err != nil {
+		return data, err
+	}
+	return data, nil
+}
+
+func decodeBlockGroupJSON(data []byte) (*BlockGroup, error) {
+	var group *BlockGroup
+	err := json.Unmarshal(data, &group)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
 }
 
 // Block represents a CLAN conversation block
@@ -102,15 +203,6 @@ type Clip struct {
 	GenderLabel     string `json:"gender-label"`
 }
 
-/*
-WorkItemLabels represents the classification results
-that are submitted by the users of IDSLabel
-*/
-type WorkItemLabels struct {
-	ItemID     string     `json:"item-id"`
-	BlockClips [][]string ``
-}
-
 // LoadLabelsDB loads the global workDB
 func LoadLabelsDB() *LabelsDB {
 	localLabelsDB := &LabelsDB{db: new(bolt.DB)}
@@ -149,34 +241,80 @@ func (db *LabelsDB) Close() {
 	db.db.Close()
 }
 
-func (db *LabelsDB) addBlock(block Block) error {
-	encodedBlock, err := block.encode()
-	if err != nil {
-		return err
-	}
+// func (db *LabelsDB) addBlock(block Block) error {
+// 	encodedBlock, err := block.encode()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	updateErr := db.db.Update(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(labelsBucket))
+// 		err := bucket.Put([]byte(block.ID), encodedBlock)
+// 		return err
+// 	})
+// 	return updateErr
+// }
 
-	updateErr := db.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(labelsBucket))
-		err := bucket.Put([]byte(block.ID), encodedBlock)
-		return err
-	})
-	return updateErr
+// func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
+//
+// 	fmt.Println("Trying to retrieve block data: ")
+// 	fmt.Println(blockID)
+//
+// 	var exists bool
+// 	var BlockGroup []byte
+//
+// 	db.db.View(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(labelsBucket))
+// 		BlockGroup = bucket.Get([]byte(blockID))
+//
+// 		// lab key doesn't exist
+// 		if BlockGroup == nil {
+// 			exists = false
+// 		} else {
+// 			exists = true
+// 		}
+// 		return nil
+// 	})
+//
+// 	if !exists {
+// 		return &Block{}, ErrWorkItemDoesntExist
+// 	}
+//
+// 	block, err := decodeBlockJSON(BlockGroup)
+// 	//fmt.Println(labData)
+// 	if err != nil {
+// 		return &Block{}, ErrWorkItemDoesntExist
+// 	}
+// 	return block, nil
+// }
+
+func (db *LabelsDB) getBlockGroup(blockIDs []string) ([]BlockGroup, error) {
+	var blocks []BlockGroup
+
+	for _, id := range blockIDs {
+		block, err := db.getBlock(id)
+		if err != nil {
+			return blocks, ErrCouldntFindLabeledBlock
+		}
+		blocks = append(blocks, *block)
+		//blocks.append(*block)
+	}
+	return blocks, nil
 }
 
-func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
-
+func (db *LabelsDB) addBlock(block Block) error {
 	fmt.Println("Trying to retrieve block data: ")
-	fmt.Println(blockID)
+	fmt.Println(block.ID)
 
 	var exists bool
-	var blockData []byte
+	var groupData []byte
 
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(labelsBucket))
-		blockData = bucket.Get([]byte(blockID))
+		groupData = bucket.Get([]byte(block.ID))
 
-		// lab key doesn't exist
-		if blockData == nil {
+		// block group doesn't exist
+		if groupData == nil {
 			exists = false
 		} else {
 			exists = true
@@ -185,27 +323,79 @@ func (db *LabelsDB) getBlock(blockID string) (*Block, error) {
 	})
 
 	if !exists {
-		return &Block{}, ErrWorkItemDoesntExist
+		newBlockGroup := BlockGroup{ID: block.ID}
+		newBlockGroup.addBlock(block)
+		if block.Training {
+			newBlockGroup.Training = true
+		}
+		if block.Reliability {
+			newBlockGroup.Reliability = true
+		}
+
+		newEncodedBlockGroup, newBlockEncodeErr := newBlockGroup.encode()
+		if newBlockEncodeErr != nil {
+			return newBlockEncodeErr
+		}
+
+		updateErr := db.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(labelsBucket))
+			err := bucket.Put([]byte(newBlockGroup.ID), newEncodedBlockGroup)
+			return err
+		})
+		return updateErr
 	}
 
-	block, err := decodeBlockJSON(blockData)
-	//fmt.Println(labData)
-	if err != nil {
-		return &Block{}, ErrWorkItemDoesntExist
+	blockGroup, blockDecodeErr := decodeBlockGroupJSON(groupData)
+	if blockDecodeErr != nil {
+		return blockDecodeErr
 	}
-	return block, nil
 
+	addBlockErr := blockGroup.addBlock(block)
+	if addBlockErr != nil {
+		return addBlockErr
+	}
+
+	encodedBlockGroup, blockEncodeErr := blockGroup.encode()
+	if blockEncodeErr != nil {
+		return blockEncodeErr
+	}
+
+	updateErr := db.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labelsBucket))
+		err := bucket.Put([]byte(blockGroup.ID), encodedBlockGroup)
+		return err
+	})
+	return updateErr
 }
 
-func (db *LabelsDB) getBlockGroup(blockIDs []string) (BlockGroup, error) {
-	var blocks BlockGroup
+func (db *LabelsDB) getBlock(blockID string) (*BlockGroup, error) {
+	fmt.Println("Trying to retrieve block data: ")
+	fmt.Println(blockID)
 
-	for _, id := range blockIDs {
-		block, err := db.getBlock(id)
-		if err != nil {
-			return BlockGroup{}, ErrCouldntFindLabeledBlock
+	var exists bool
+	var groupData []byte
+
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labelsBucket))
+		groupData = bucket.Get([]byte(blockID))
+
+		// block group doesn't exist
+		if groupData == nil {
+			exists = false
+		} else {
+			exists = true
 		}
-		blocks.append(*block)
+		return nil
+	})
+
+	if !exists {
+		return &BlockGroup{}, ErrWorkItemDoesntExist
 	}
-	return blocks, nil
+
+	blockGroup, err := decodeBlockGroupJSON(groupData)
+	//fmt.Println(labData)
+	if err != nil {
+		return &BlockGroup{}, ErrWorkItemDoesntExist
+	}
+	return blockGroup, nil
 }

@@ -1,0 +1,4 @@
+date,coder,clan_file,audiofile,block,timestamp,clip,tier,label,multi-tier-parent,dont_share,training,reliability
+,,train_Block4_Warlaumont.cha,0204_000314.mp3,151,4011980_4015310,1,FAN,,N,False,True,False
+,,train_Block4_Warlaumont.cha,0204_000314.mp3,151,4015310_4016320,2,MAN,,N,False,True,False
+,,train_Block4_Warlaumont.cha,0204_000314.mp3,151,4016320_4017320,3,FAN,,N,False,True,False
