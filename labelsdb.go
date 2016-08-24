@@ -125,16 +125,19 @@ func (group *BlockGroup) addBlock(block Block) error {
 		if len(group.Blocks) == numRealBlockPasses {
 			return ErrBlockGroupFull
 		}
+		block.Instance = len(group.Blocks)
 		group.Blocks = append(group.Blocks, block)
 		return nil
 	} else if block.Reliability {
 		if group.coderPresent(block.LabKey, block.Coder) {
 			return ErrBlockGroupFull
 		}
+		block.Instance = len(group.Blocks)
 		group.Blocks = append(group.Blocks, block)
 		return nil
 
 	} else if block.Training {
+		block.Instance = len(group.Blocks)
 		group.Blocks = append(group.Blocks, block)
 		return nil
 	}
@@ -181,6 +184,7 @@ func decodeBlockGroupJSON(data []byte) (*BlockGroup, error) {
 type Block struct {
 	ClanFile    string `json:"clan-file"`
 	Index       int    `json:"block-index"`
+	Instance    int    `json:"block-instance"`
 	Clips       []Clip `json:"clips"`
 	FanOrMan    bool   `json:"fan-or-man"`
 	DontShare   bool   `json:"dont-share"`

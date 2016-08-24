@@ -106,7 +106,7 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		workItem, chooseWIErr = chooseUniqueWorkItem(blockRequest)
+		workItem, chooseWIErr = chooseRegularWorkItem(blockRequest)
 		if chooseWIErr != nil {
 			http.Error(w, chooseWIErr.Error(), 404)
 			return
@@ -273,7 +273,7 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if block.Training {
-		inactivateWorkItem(workItem, request)
+		//inactivateWorkItem(workItem, request)
 
 		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
 		if getUserErr != nil {
@@ -291,7 +291,7 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else if block.Reliability {
-		inactivateWorkItem(workItem, request)
+		//inactivateWorkItem(workItem, request)
 
 		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
 		if getUserErr != nil {
@@ -308,20 +308,22 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, getUserErr.Error(), 400)
 			return
 		}
-	} else {
-		addBlockErr := labelsDB.addBlock(block)
-		if addBlockErr != nil {
-			http.Error(w, addBlockErr.Error(), 400)
-			return
-		}
-		inactivateWorkItem(workItem, request)
 	}
+	// else {
+	// 	addBlockErr := labelsDB.addBlock(block)
+	// 	if addBlockErr != nil {
+	// 		http.Error(w, addBlockErr.Error(), 400)
+	// 		return
+	// 	}
+	// 	inactivateWorkItem(workItem, request)
+	// }
 
 	addBlockErr := labelsDB.addBlock(block)
 	if addBlockErr != nil {
 		http.Error(w, addBlockErr.Error(), 400)
 		return
 	}
+	inactivateWorkItem(workItem, request)
 }
 
 func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
@@ -517,13 +519,28 @@ func getTrainingLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, getBlocksErr := labsDB.getCompleteTrainBlocks(idsRequest.LabKey)
-	if getBlocksErr != nil {
-		http.Error(w, getBlocksErr.Error(), 400)
+	// Get Block ID's for all training blocks completed by lab users
+	blockIDs, getBlockIDsErr := labsDB.getCompleteTrainBlocks(idsRequest.LabKey)
+	if getBlockIDsErr != nil {
+		http.Error(w, getBlockIDsErr.Error(), 400)
 		return
 	}
 
-	json.NewEncoder(w).Encode(blocks)
+	// Get all the BlockGroups with those ID's
+	blockGroups, getGroupsErr := labelsDB.getBlockGroup(blockIDs)
+	if getGroupsErr != nil {
+		http.Error(w, getGroupsErr.Error(), 400)
+		return
+	}
+
+	// Filter those BlockGroups just for this lab's entries.
+	// labBlocks is a BlockArray (array of Block)
+	labBlocks, labBlocksErr := blockGroups.filterLab(idsRequest.LabKey)
+	if labBlocksErr != nil {
+		http.Error(w, labBlocksErr.Error(), 400)
+		return
+	}
+	json.NewEncoder(w).Encode(labBlocks)
 }
 
 func getReliabilityHandler(w http.ResponseWriter, r *http.Request) {
@@ -555,12 +572,28 @@ func getReliabilityHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, getBlocksErr := labsDB.getCompleteReliaBlocks(idsRequest.LabKey)
-	if getBlocksErr != nil {
-		http.Error(w, getBlocksErr.Error(), 400)
+	// Get Block ID's for all reliability blocks completed by lab users
+	blockIDs, getBlockIDsErr := labsDB.getCompleteReliaBlocks(idsRequest.LabKey)
+	if getBlockIDsErr != nil {
+		http.Error(w, getBlockIDsErr.Error(), 400)
 		return
 	}
 
-	json.NewEncoder(w).Encode(blocks)
+	// Get all the BlockGroups with those ID's
+	blockGroups, getGroupsErr := labelsDB.getBlockGroup(blockIDs)
+	if getGroupsErr != nil {
+		http.Error(w, getGroupsErr.Error(), 400)
+		return
+	}
+
+	// Filter those BlockGroups just for this lab's entries.
+	// labBlocks is a BlockArray (array of Block)
+	labBlocks, labBlocksErr := blockGroups.filterLab(idsRequest.LabKey)
+	if labBlocksErr != nil {
+		http.Error(w, labBlocksErr.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(labBlocks)
 
 }

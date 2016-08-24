@@ -54,16 +54,22 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name                string     `json:"name"`
-	ParentLab           string     `json:"parent-lab"`
-	ActiveWorkItems     []WorkItem `json:"active-work-items"`
-	PastWorkItems       []WorkItem `json:"finished-work-items"`
-	CompleteTrainBlocks []string   `json:"complete-train-blocks"`
-	CompleteRelBlocks   []string   `json:"complete-reliability-blocks"`
+	Name                string   `json:"name"`
+	ParentLab           string   `json:"parent-lab"`
+	ActiveWorkItems     []string `json:"active-work-items"`
+	PastWorkItems       []string `json:"finished-work-items"`
+	CompleteTrainBlocks []string `json:"complete-train-blocks"`
+	CompleteRelBlocks   []string `json:"complete-reliability-blocks"`
 }
 
-func (user *User) addWorkItem(item WorkItem) {
-	user.ActiveWorkItems = append(user.ActiveWorkItems, item)
+func (user *User) addWorkItem(itemID string) {
+	// make sure not to add an ID more than once
+	for _, userActiveID := range user.ActiveWorkItems {
+		if itemID == userActiveID {
+			return
+		}
+	}
+	user.ActiveWorkItems = append(user.ActiveWorkItems, itemID)
 }
 
 func (user *User) addCompleteTrainBlock(block Block) {
@@ -83,35 +89,44 @@ func (user *User) addCompleteRelBlock(block Block) {
 			return
 		}
 	}
+	// add ID
 	user.CompleteRelBlocks = append(user.CompleteRelBlocks, block.ID)
 }
 
 func (user *User) inactivateWorkItem(item WorkItem) error {
-	var newActiveItems []WorkItem
-	foundItem := false
+	var newActiveItems []string
+	foundItemInActive := false
 
 	for _, element := range user.ActiveWorkItems {
-		if item.ID == element.ID {
-			foundItem = true
+		if item.ID == element {
+			foundItemInActive = true
 		} else {
 			newActiveItems = append(newActiveItems, element)
 		}
 	}
-	user.PastWorkItems = append(user.PastWorkItems, item)
-	user.ActiveWorkItems = newActiveItems
-
-	if !foundItem {
+	if foundItemInActive {
+		var itemAlreadyInPastList = false
+		for _, userFinishedID := range user.PastWorkItems {
+			if item.ID == userFinishedID {
+				itemAlreadyInPastList = true
+			}
+		}
+		if !itemAlreadyInPastList {
+			user.PastWorkItems = append(user.PastWorkItems, item.ID)
+		}
+		user.ActiveWorkItems = newActiveItems
+	} else {
 		return ErrUserNotAssignedWorkItem
 	}
 	return nil
 }
 
 func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
-	var newActiveItems []WorkItem
+	var newActiveItems []string
 	foundItem := false
 
 	for _, element := range user.ActiveWorkItems {
-		if item.ID == element.ID {
+		if item.ID == element {
 			foundItem = true
 		} else {
 			newActiveItems = append(newActiveItems, element)
@@ -194,7 +209,7 @@ func (db *LabsDB) Close() {
 func (db *LabsDB) addUser(labKey, labName, username string) {
 	newUser := User{Name: username,
 		ParentLab:       labKey,
-		ActiveWorkItems: make([]WorkItem, 0)}
+		ActiveWorkItems: make([]string, 0)}
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {
@@ -385,9 +400,9 @@ func (db *LabsDB) getCompletedBlocks(labKey string) ([]string, error) {
 		return blocks, err
 	}
 
-	for _, value := range lab.Users {
-		for _, block := range value.PastWorkItems {
-			blocks = append(blocks, block.ID)
+	for _, user := range lab.Users {
+		for _, blockID := range user.PastWorkItems {
+			blocks = append(blocks, blockID)
 		}
 	}
 	return blocks, nil
@@ -399,8 +414,8 @@ func (db *LabsDB) getCompleteTrainBlocks(labKey string) (BlockIDList, error) {
 	if err != nil {
 		return blocks, err
 	}
-	for _, value := range lab.Users {
-		for _, block := range value.CompleteTrainBlocks {
+	for _, user := range lab.Users {
+		for _, block := range user.CompleteTrainBlocks {
 			blocks.addID(block)
 		}
 	}
@@ -413,8 +428,8 @@ func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockIDList, error) {
 	if err != nil {
 		return blocks, err
 	}
-	for _, value := range lab.Users {
-		for _, block := range value.CompleteRelBlocks {
+	for _, user := range lab.Users {
+		for _, block := range user.CompleteRelBlocks {
 			blocks.addID(block)
 		}
 	}

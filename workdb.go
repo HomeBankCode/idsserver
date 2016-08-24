@@ -238,7 +238,7 @@ func activateWorkItem(item WorkItem, request IDSRequest) {
 	if getUsrError != nil {
 		return
 	}
-	user.addWorkItem(workItemMap[item.ID])
+	user.addWorkItem(item.ID)
 	labsDB.setUser(user)
 }
 
@@ -251,7 +251,7 @@ func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
 	return false
 }
 
-func chooseUniqueWorkItem(request IDSRequest) (WorkItem, error) {
+func chooseRegularWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
 	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
 	if getUsrErr != nil {
@@ -293,7 +293,8 @@ func userHasBlockFromFile(item WorkItem, request IDSRequest, user User) bool {
 		from the same file
 	*/
 	for _, userItem := range user.ActiveWorkItems {
-		if userItem.FileName == item.FileName {
+		userWorkItem := workItemMap[userItem]
+		if userWorkItem.FileName == item.FileName {
 			return true
 		}
 	}
@@ -431,8 +432,8 @@ func blockAppropriateForUserReliability(item WorkItem, request IDSRequest, user 
 }
 
 func userHasThisBlock(item WorkItem, request IDSRequest, user User) bool {
-	for _, userItem := range user.ActiveWorkItems {
-		if userItem.ID == item.ID {
+	for _, userItemID := range user.ActiveWorkItems {
+		if userItemID == item.ID {
 			return true
 		}
 	}
