@@ -141,6 +141,22 @@ func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
 	return nil
 }
 
+func (user *User) getPastBlockInstanceMap() (InstanceMap, error) {
+	instanceMap := make(InstanceMap)
+
+	for _, blockID := range user.PastWorkItems {
+		blockGroup, blockGroupErr := labelsDB.getBlock(blockID)
+		if blockGroupErr != nil {
+			return instanceMap, blockGroupErr
+		}
+		userInstances := blockGroup.getUsersBlocks(user.ParentLab, user.Name)
+		for _, block := range userInstances {
+			instanceMap[block.ID] = append(instanceMap[block.ID], block.Instance)
+		}
+	}
+	return instanceMap, nil
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
@@ -161,6 +177,24 @@ func decodeLabJSON(data []byte) (*Lab, error) {
 func (lab *Lab) addUser(user User) {
 	user.ParentLab = lab.Key
 	lab.Users[user.Name] = user
+}
+
+func (lab *Lab) getPastBlockInstanceMap() (InstanceMap, error) {
+	instanceMap := make(InstanceMap)
+
+	for _, user := range lab.Users {
+		for _, blockID := range user.PastWorkItems {
+			blockGroup, blockGroupErr := labelsDB.getBlock(blockID)
+			if blockGroupErr != nil {
+				return instanceMap, blockGroupErr
+			}
+			userInstances := blockGroup.getUsersBlocks(user.ParentLab, user.Name)
+			for _, block := range userInstances {
+				instanceMap[block.ID] = append(instanceMap[block.ID], block.Instance)
+			}
+		}
+	}
+	return instanceMap, nil
 }
 
 // LabsDB is wrapper around a boltdb
@@ -435,31 +469,3 @@ func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockIDList, error) {
 	}
 	return blocks, nil
 }
-
-// func (db *LabsDB) getTrainBlock(labKey, username, id string) (Block, error) {
-// 	var block Block
-// 	user, err := db.getUser(labKey, username)
-// 	if err != nil {
-// 		return block, err
-// 	}
-// 	for _, blockID := range user.CompleteTrainBlocks {
-// 		if blockID == id {
-// 			return blockID, nil
-// 		}
-// 	}
-// 	return block, ErrTrainBlockNotFound
-// }
-
-// func (db *LabsDB) getReliaBlock(labKey, username, id string) (Block, error) {
-// 	var block Block
-// 	user, err := db.getUser(labKey, username)
-// 	if err != nil {
-// 		return block, err
-// 	}
-// 	for _, item := range user.CompleteRelBlocks {
-// 		if item.ID == id {
-// 			return item, nil
-// 		}
-// 	}
-// 	return block, ErrReliaBlockNotFound
-// }

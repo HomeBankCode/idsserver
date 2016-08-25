@@ -35,6 +35,7 @@ type WorkItemDataReq struct {
 	Username    string `json:"username"`
 	Training    bool   `json:"training"`
 	Reliability bool   `json:"reliability"`
+	Instance    int    `json:"instance"`
 }
 
 /*
@@ -46,6 +47,20 @@ type WorkItemReleaseReq struct {
 	LabName  string   `json:"lab-name"`
 	Username string   `json:"username"`
 	BlockIds []string `json:"blocks"`
+}
+
+/*
+DeleteBlockRequest is a request to delete the submitted
+labels for a collection of block/instances. The BlockMap
+if a map of Block ID's to an array of instance numbers
+*/
+type DeleteBlockRequest struct {
+	LabKey   string           `json:"lab-key"`
+	Username string           `json:"username"`
+	Type     string           `json:"delete-type"`
+	BlockMap map[string][]int `json:"block-map"`
+	BlockID  string           `json:"block-id"`
+	Instance int              `json:"instance"`
 }
 
 func (br *IDSRequest) userID() string {
@@ -127,33 +142,6 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.ServeFile(w, r, workItem.BlockPath)
 
-}
-
-func shutDownHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
-	}
-
-	var shutdownReq ShutdownRequest
-
-	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &shutdownReq)
-
-	fmt.Println(shutdownReq)
-
-	fmt.Println(shutdownReq.AdminKey)
-
-	if shutdownReq.AdminKey == mainConfig.AdminKey {
-		shutDown()
-	}
 }
 
 func labInfoHandler(w http.ResponseWriter, r *http.Request) {
@@ -273,7 +261,6 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if block.Training {
-		//inactivateWorkItem(workItem, request)
 
 		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
 		if getUserErr != nil {
@@ -291,7 +278,6 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else if block.Reliability {
-		//inactivateWorkItem(workItem, request)
 
 		user, getUserErr := labsDB.getUser(block.LabKey, block.Username)
 		if getUserErr != nil {
@@ -309,14 +295,6 @@ func submitLabelsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// else {
-	// 	addBlockErr := labelsDB.addBlock(block)
-	// 	if addBlockErr != nil {
-	// 		http.Error(w, addBlockErr.Error(), 400)
-	// 		return
-	// 	}
-	// 	inactivateWorkItem(workItem, request)
-	// }
 
 	addBlockErr := labelsDB.addBlock(block)
 	if addBlockErr != nil {
@@ -595,5 +573,129 @@ func getReliabilityHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(labBlocks)
+}
+
+func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
+	parseFormErr := r.ParseForm()
+	if parseFormErr != nil {
+		http.Error(w, parseFormErr.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a delete blocks request")
+	var deleteBlockReq DeleteBlockRequest
+
+	jsonDataFromHTTP, readBodyErr := ioutil.ReadAll(r.Body)
+	if readBodyErr != nil {
+		http.Error(w, readBodyErr.Error(), 400)
+		return
+	}
+
+	fmt.Println()
+	unmarshalErr := json.Unmarshal(jsonDataFromHTTP, &deleteBlockReq)
+	if unmarshalErr != nil {
+		http.Error(w, unmarshalErr.Error(), 400)
+		return
+	}
+	fmt.Println(deleteBlockReq)
+
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(deleteBlockReq.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
+	if deleteBlockReq.Type == "single" {
+		/*
+			We need to delete a single instance of a block from the LabelsDB
+			and delete the entry from the coder's PastWorkItems list. If the
+			user submitted more than one instance of that particular block,
+			then we leave the ID in the PastWorkItems list (only deleted one
+			instance of it).
+		*/
+
+		// make map
+		singleInstanceMap := make(InstanceMap)
+		singleInstanceMap[deleteBlockReq.BlockID] = []int{deleteBlockReq.Instance}
+
+		// delete from labelsDB
+		labelsDB.deleteBlocks(singleInstanceMap)
+
+	} else if deleteBlockReq.Type == "user" {
+		/*
+			We need to build an InstanceMap of all the user's completed
+			instances of blocks, and then pass that map to labelsDB.deleteBlocks()
+			function. Then we need to delete all of those block entries from the
+			user's PastWorkItems list.
+		*/
+
+		// get the user
+		user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Username)
+		if getUserErr != nil {
+			http.Error(w, getUserErr.Error(), 400)
+			return
+		}
+
+		// build user's block instance map
+		userInstances, userInstanceErr := user.getPastBlockInstanceMap()
+		if userInstanceErr != nil {
+			http.Error(w, userInstanceErr.Error(), 400)
+			return
+		}
+
+		// delete those instances
+		deleteUserInstErr := labelsDB.deleteBlocks(userInstances)
+		if deleteUserInstErr != nil {
+			http.Error(w, deleteUserInstErr.Error(), 400)
+		}
+
+		// clear out user's PastWorkItems
+		user.PastWorkItems = nil
+		labsDB.setUser(user)
+
+	} else if deleteBlockReq.Type == "lab" {
+		/*
+			We need to build an InstanceMap of all the lab's completed
+			instances of blocks, and then pass that map to labelsDB.deleteBlocks()
+			function. Then we need to delete all block entries from all of the lab's
+			user's PastWorkItems lists.
+		*/
+
+		// get the lab
+		lab, getLabErr := labsDB.getLab(deleteBlockReq.LabKey)
+		if getLabErr != nil {
+			http.Error(w, getLabErr.Error(), 400)
+			return
+		}
+
+		// get all block instances submitted by the lab
+		labInstanceMap, labInstanceErr := lab.getPastBlockInstanceMap()
+		if labInstanceErr != nil {
+			http.Error(w, labInstanceErr.Error(), 400)
+			return
+		}
+
+		// delete all those instances from LabelsDB
+		deleteLabInstErr := labelsDB.deleteBlocks(labInstanceMap)
+		if deleteLabInstErr != nil {
+			http.Error(w, deleteLabInstErr.Error(), 400)
+			return
+		}
+
+		// clear out all users' PastWorkItems
+		for _, user := range lab.Users {
+			user.PastWorkItems = nil
+		}
+
+		labsDB.setLab(lab.Key, lab)
+	}
+}
+
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func deleteLabHandler(w http.ResponseWriter, r *http.Request) {
 
 }

@@ -242,14 +242,14 @@ func activateWorkItem(item WorkItem, request IDSRequest) {
 	labsDB.setUser(user)
 }
 
-func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
-	for _, item := range array {
-		if item.FileName == file {
-			return true
-		}
-	}
-	return false
-}
+// func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
+// 	for _, item := range array {
+// 		if item.FileName == file {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func chooseRegularWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem
@@ -358,15 +358,15 @@ func (db *WorkDB) persistWorkItemMap(itemMap WorkItemMap) {
 	}
 }
 
-func getAllCompleteBlockIDs() []string {
-	var blockIDs []string
-	for _, item := range workItemMap {
-		if item.TimesCoded > 0 {
-			blockIDs = append(blockIDs, item.ID)
-		}
-	}
-	return blockIDs
-}
+// func getAllCompleteBlockIDs() []string {
+// 	var blockIDs []string
+// 	for _, item := range workItemMap {
+// 		if item.TimesCoded > 0 {
+// 			blockIDs = append(blockIDs, item.ID)
+// 		}
+// 	}
+// 	return blockIDs
+// }
 
 func chooseTrainingWorkItem(request IDSRequest) (WorkItem, error) {
 	var workItem WorkItem

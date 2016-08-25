@@ -204,6 +204,9 @@ func main() {
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/getblock/", getBlockHandler)
+	http.HandleFunc("/deleteblock/", deleteBlockHandler)
+	http.HandleFunc("/deleteuser/", deleteUserHandler)
+	http.HandleFunc("/deletelab/", deleteLabHandler)
 	http.HandleFunc("/labinfo/", labInfoHandler)
 	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
 	http.HandleFunc("/adduser/", addUserHandler)
@@ -214,7 +217,6 @@ func main() {
 	http.HandleFunc("/getalllabels/", getAllLabelsHandler)
 	http.HandleFunc("/gettrainlabels/", getTrainingLabelsHandler)
 	http.HandleFunc("/getrelialabels/", getReliabilityHandler)
-	http.HandleFunc("/shutdown/", shutDownHandler)
 
 	http.ListenAndServe(":4000", nil)
 

@@ -29,6 +29,10 @@ var (
 
 	// ErrLabNotInBlockGroup means that this lab isn't in the BlockGroup
 	ErrLabNotInBlockGroup = errors.New("Lab not in BlockGroup")
+
+	// ErrInstanceNotInGroup means that the instance number was not found when
+	// scanning the group's blocks
+	ErrInstanceNotInGroup = errors.New("Instance not in group")
 )
 
 const (
@@ -105,15 +109,21 @@ func (idList *BlockIDList) addID(id string) {
 }
 
 /*
+InstanceMap is a map of Block ID's to
+instance numbers.
+*/
+type InstanceMap map[string][]int
+
+/*
 BlockGroup is a container struct for multiple instances
 of the same block. So you can have a single block coded
 multiple times by different (or identical) users.
 */
 type BlockGroup struct {
-	ID          string  `json:"block-id"`
-	Blocks      []Block `json:"blocks"`
-	Training    bool    `json:"training"`
-	Reliability bool    `json:"reliability"`
+	ID          string     `json:"block-id"`
+	Blocks      BlockArray `json:"blocks"`
+	Training    bool       `json:"training"`
+	Reliability bool       `json:"reliability"`
 }
 
 func (group *BlockGroup) addBlock(block Block) error {
@@ -126,37 +136,52 @@ func (group *BlockGroup) addBlock(block Block) error {
 			return ErrBlockGroupFull
 		}
 		block.Instance = len(group.Blocks)
-		group.Blocks = append(group.Blocks, block)
+		group.Blocks.addBlock(block)
 		return nil
 	} else if block.Reliability {
 		if group.coderPresent(block.LabKey, block.Coder) {
 			return ErrBlockGroupFull
 		}
 		block.Instance = len(group.Blocks)
-		group.Blocks = append(group.Blocks, block)
+		group.Blocks.addBlock(block)
 		return nil
 
 	} else if block.Training {
 		block.Instance = len(group.Blocks)
-		group.Blocks = append(group.Blocks, block)
+		group.Blocks.addBlock(block)
 		return nil
 	}
 	return ErrAddBlockFailed
 }
 
-func (group *BlockGroup) getUsersBlocks(labKey, username string) []Block {
-	var blocks []Block
-	for _, item := range group.Blocks {
-		if item.LabKey == labKey && item.Coder == username {
-			blocks = append(blocks, item)
+func (group *BlockGroup) deleteInstance(instance int) error {
+	var newBlocks BlockArray
+	for _, block := range group.Blocks {
+		if block.Instance != instance {
+			block.Instance = len(newBlocks)
+			newBlocks.addBlock(block)
+		}
+	}
+	if len(newBlocks) == len(group.Blocks) {
+		return ErrInstanceNotInGroup
+	}
+	group.Blocks = newBlocks
+	return nil
+}
+
+func (group *BlockGroup) getUsersBlocks(labKey, username string) BlockArray {
+	var blocks BlockArray
+	for _, block := range group.Blocks {
+		if block.LabKey == labKey && block.Coder == username {
+			blocks.addBlock(block)
 		}
 	}
 	return blocks
 }
 
 func (group *BlockGroup) coderPresent(labKey, coder string) bool {
-	for _, element := range group.Blocks {
-		if element.LabKey == labKey && element.Coder == coder {
+	for _, block := range group.Blocks {
+		if block.LabKey == labKey && block.Coder == coder {
 			return true
 		}
 	}
@@ -381,6 +406,20 @@ func (db *LabelsDB) getBlock(blockID string) (*BlockGroup, error) {
 	return blockGroup, nil
 }
 
+func (db *LabelsDB) setBlockGroup(group BlockGroup) error {
+	encodedBlockGroup, encodeErr := group.encode()
+	if encodeErr != nil {
+		return encodeErr
+	}
+
+	updateErr := db.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(labelsBucket))
+		err := bucket.Put([]byte(group.ID), encodedBlockGroup)
+		return err
+	})
+	return updateErr
+}
+
 func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
 	var blockGroupArray BlockGroupArray
 
@@ -402,4 +441,27 @@ func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
 		return blockGroupArray, scanErr
 	}
 	return blockGroupArray, nil
+}
+
+func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) error {
+	for blockID, instanceList := range instanceMap {
+
+		// Get the requested BlockGroup
+		blockGroup, getGroupErr := labelsDB.getBlock(blockID)
+		if getGroupErr != nil {
+			return getGroupErr
+		}
+
+		for _, instance := range instanceList {
+			// Delete the requested instances of the block
+			blockGroup.deleteInstance(instance)
+		}
+
+		// Set the updated version of the group, with instance deleted
+		setNewGroupErr := labelsDB.setBlockGroup(*blockGroup)
+		if setNewGroupErr != nil {
+			return setNewGroupErr
+		}
+	}
+	return nil
 }
