@@ -443,13 +443,13 @@ func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
 	return blockGroupArray, nil
 }
 
-func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) error {
+func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 	for blockID, instanceList := range instanceMap {
 
 		// Get the requested BlockGroup
 		blockGroup, getGroupErr := labelsDB.getBlock(blockID)
 		if getGroupErr != nil {
-			return getGroupErr
+			return false, getGroupErr
 		}
 
 		for _, instance := range instanceList {
@@ -457,11 +457,29 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) error {
 			blockGroup.deleteInstance(instance)
 		}
 
+		/*
+			If there are no more instances of the block left, then we
+			need to delete the entire BlockGroup from the LabelsDB.
+			We delete the Block ID from the keys of the LabelsDB
+		*/
+		if len(blockGroup.Blocks) == 0 {
+			deleteKeyErr := db.db.Update(func(tx *bolt.Tx) error {
+				bucket := tx.Bucket([]byte(labelsBucket))
+				delKeyErr := bucket.Delete([]byte(blockGroup.ID))
+				return delKeyErr
+			})
+
+			if deleteKeyErr != nil {
+				return false, deleteKeyErr
+			}
+			return true, nil
+		}
+
 		// Set the updated version of the group, with instance deleted
 		setNewGroupErr := labelsDB.setBlockGroup(*blockGroup)
 		if setNewGroupErr != nil {
-			return setNewGroupErr
+			return false, setNewGroupErr
 		}
 	}
-	return nil
+	return false, nil
 }

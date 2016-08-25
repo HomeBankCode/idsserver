@@ -157,6 +157,17 @@ func (user *User) getPastBlockInstanceMap() (InstanceMap, error) {
 	return instanceMap, nil
 }
 
+func (user *User) deletePastItem(blockID string) {
+	var newIDList BlockIDList
+
+	for _, pastBlockID := range user.PastWorkItems {
+		if !(pastBlockID == blockID) {
+			newIDList.addID(pastBlockID)
+		}
+	}
+	user.PastWorkItems = newIDList
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {

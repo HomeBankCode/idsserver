@@ -56,7 +56,7 @@ if a map of Block ID's to an array of instance numbers
 */
 type DeleteBlockRequest struct {
 	LabKey   string           `json:"lab-key"`
-	Username string           `json:"username"`
+	Coder    string           `json:"coder"`
 	Type     string           `json:"delete-type"`
 	BlockMap map[string][]int `json:"block-map"`
 	BlockID  string           `json:"block-id"`
@@ -619,8 +619,50 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		singleInstanceMap := make(InstanceMap)
 		singleInstanceMap[deleteBlockReq.BlockID] = []int{deleteBlockReq.Instance}
 
-		// delete from labelsDB
-		labelsDB.deleteBlocks(singleInstanceMap)
+		// Delete from labelsDB. Function might also delete the BlockGroup entirely,
+		// so it returns a flag
+		groupWasDeleted, _ := labelsDB.deleteBlocks(singleInstanceMap)
+
+		if !groupWasDeleted {
+
+			blockGroup, getGroupErr := labelsDB.getBlock(deleteBlockReq.BlockID)
+			if getGroupErr != nil {
+				http.Error(w, getGroupErr.Error(), 400)
+				return
+			}
+
+			// if there's a block instance with this coder still, it means they submitted
+			// more than one instance of the same block, so we keep the PastWorkItem entry,
+			// otherwise we delete it
+			if !blockGroup.coderPresent(deleteBlockReq.LabKey, deleteBlockReq.Coder) {
+				user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
+				if getUserErr != nil {
+					http.Error(w, getUserErr.Error(), 400)
+					return
+				}
+				fmt.Println("\n\nBefore deleting PastItem")
+				fmt.Println(user.PastWorkItems)
+				user.deletePastItem(deleteBlockReq.BlockID)
+				fmt.Println("\nAfter deleting PastItem")
+				fmt.Println(user.PastWorkItems)
+				fmt.Printf("\n\n")
+				labsDB.setUser(user)
+			}
+
+		} else {
+			user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
+			if getUserErr != nil {
+				http.Error(w, getUserErr.Error(), 400)
+				return
+			}
+			fmt.Println("\n\nBefore deleting PastItem")
+			fmt.Println(user.PastWorkItems)
+			user.deletePastItem(deleteBlockReq.BlockID)
+			fmt.Println("\nAfter deleting PastItem")
+			fmt.Println(user.PastWorkItems)
+			fmt.Printf("\n\n")
+			labsDB.setUser(user)
+		}
 
 	} else if deleteBlockReq.Type == "user" {
 		/*
@@ -631,7 +673,7 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 
 		// get the user
-		user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Username)
+		user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
 		if getUserErr != nil {
 			http.Error(w, getUserErr.Error(), 400)
 			return
@@ -645,7 +687,7 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// delete those instances
-		deleteUserInstErr := labelsDB.deleteBlocks(userInstances)
+		_, deleteUserInstErr := labelsDB.deleteBlocks(userInstances)
 		if deleteUserInstErr != nil {
 			http.Error(w, deleteUserInstErr.Error(), 400)
 		}
@@ -677,7 +719,7 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// delete all those instances from LabelsDB
-		deleteLabInstErr := labelsDB.deleteBlocks(labInstanceMap)
+		_, deleteLabInstErr := labelsDB.deleteBlocks(labInstanceMap)
 		if deleteLabInstErr != nil {
 			http.Error(w, deleteLabInstErr.Error(), 400)
 			return
