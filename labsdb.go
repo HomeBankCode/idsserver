@@ -209,6 +209,11 @@ func (lab *Lab) addUser(user User) {
 	lab.Users[user.Name] = user
 }
 
+func (lab *Lab) deleteUser(user string) {
+	delete(lab.Users, user)
+
+}
+
 func (lab *Lab) getPastBlockInstanceMap() (InstanceMap, error) {
 	instanceMap := make(InstanceMap)
 

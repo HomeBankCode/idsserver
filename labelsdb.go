@@ -499,15 +499,6 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 
 		blockGroup.deleteInstances(instanceList)
 
-		// for _, instance := range instanceList {
-		// 	fmt.Println("\nbefore blockGroup.deleteInstance()")
-		// 	fmt.Println(blockGroup)
-		// 	// Delete the requested instances of the block
-		// 	blockGroup.deleteInstance(instance)
-		// 	fmt.Println("\nafter blockGroup.deleteInstance()")
-		// 	fmt.Println(blockGroup)
-		// }
-
 		/*
 			If there are no more instances of the block left, then we
 			need to delete the entire BlockGroup from the LabelsDB.
@@ -534,4 +525,120 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (db *LabelsDB) deleteSingleBlock(labKey, coder, blockID string, instance int) error {
+	/*
+		We need to delete a single instance of a block from the LabelsDB
+		and delete the entry from the coder's PastWorkItems list. If the
+		user submitted more than one instance of that particular block,
+		then we leave the ID in the PastWorkItems list (only deleted one
+		instance of it).
+	*/
+
+	// make map
+	singleInstanceMap := make(InstanceMap)
+	singleInstanceMap[deleteBlockReq.BlockID] = NewInstanceList(instance)
+
+	// Delete from labelsDB. Function might also delete the BlockGroup entirely,
+	// so it returns a flag
+	groupWasDeleted, _ := db.deleteBlocks(singleInstanceMap)
+
+	if !groupWasDeleted {
+		blockGroup, getGroupErr := db.getBlock(blockID)
+		if getGroupErr != nil {
+			return getGroupErr
+		}
+
+		// if there's a block instance with this coder still, it means they submitted
+		// more than one instance of the same block, so we keep the PastWorkItem entry,
+		// otherwise we delete it
+		if !blockGroup.coderPresent(labKey, coder) {
+			user, getUserErr := labsDB.getUser(labKey, coder)
+			if getUserErr != nil {
+				return getUserErr
+			}
+			user.deletePastItem(blockID)
+			labsDB.setUser(user)
+		}
+
+	} else {
+		user, getUserErr := labsDB.getUser(labKey, coder)
+		if getUserErr != nil {
+			return getUserErr
+		}
+		user.deletePastItem(blockID)
+		labsDB.setUser(user)
+	}
+}
+
+func (db *LabelsDB) deleteUserBlocks(labKey, username string) error {
+	/*
+		We need to build an InstanceMap of all the user's completed
+		instances of blocks, and then pass that map to labelsDB.deleteBlocks()
+		function. Then we need to delete all of those block entries from the
+		user's PastWorkItems list.
+	*/
+
+	// get the user
+	user, getUserErr := labsDB.getUser(labKey, username)
+	if getUserErr != nil {
+		return getUserErr
+	}
+
+	// build user's block instance map
+	userInstances, userInstanceErr := user.getPastBlockInstanceMap()
+	if userInstanceErr != nil {
+		return userInstanceErr
+	}
+
+	// delete those instances
+	_, deleteUserInstErr := labelsDB.deleteBlocks(userInstances)
+	if deleteUserInstErr != nil {
+		return deleteUserInstErr
+	}
+
+	// clear out user's PastWorkItems
+	user.PastWorkItems = nil
+	user.CompleteTrainBlocks = nil
+	user.CompleteRelBlocks = nil
+	labsDB.setUser(user)
+}
+
+func (db *LabelsDB) deleteLabBlocks(labKey string) error {
+	/*
+		We need to build an InstanceMap of all the lab's completed
+		instances of blocks, and then pass that map to labelsDB.deleteBlocks()
+		function. Then we need to delete all block entries from all of the lab's
+		user's PastWorkItems lists.
+	*/
+
+	// get the lab
+	lab, getLabErr := labsDB.getLab(labKey)
+	if getLabErr != nil {
+		return getLabErr
+	}
+
+	// get all block instances submitted by the lab
+	labInstanceMap, labInstanceErr := lab.getPastBlockInstanceMap()
+	if labInstanceErr != nil {
+		return labInstanceErr
+	}
+
+	// delete all those instances from LabelsDB
+	_, deleteLabInstErr := db.deleteBlocks(labInstanceMap)
+	if deleteLabInstErr != nil {
+		return deleteLabInstErr
+	}
+
+	// clear out all users' PastWorkItems
+	for index, user := range lab.Users {
+		user.PastWorkItems = nil
+		user.CompleteTrainBlocks = nil
+		user.CompleteRelBlocks = nil
+
+		lab.Users[index] = user
+	}
+
+	labsDB.setLab(lab.Key, lab)
 }

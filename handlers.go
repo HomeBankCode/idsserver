@@ -55,12 +55,11 @@ labels for a collection of block/instances. The BlockMap
 if a map of Block ID's to an array of instance numbers
 */
 type DeleteBlockRequest struct {
-	LabKey   string           `json:"lab-key"`
-	Coder    string           `json:"coder"`
-	Type     string           `json:"delete-type"`
-	BlockMap map[string][]int `json:"block-map"`
-	BlockID  string           `json:"block-id"`
-	Instance int              `json:"instance"`
+	LabKey   string `json:"lab-key"`
+	Coder    string `json:"coder"`
+	Type     string `json:"delete-type"`
+	BlockID  string `json:"block-id"`
+	Instance int    `json:"instance"`
 }
 
 func (br *IDSRequest) userID() string {
@@ -599,150 +598,37 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println(deleteBlockReq)
 
+	labKey := deleteBlockReq.LabKey
+	coder := deleteBlockReq.Coder
+	blockID := deleteBlockReq.BlockID
+	instance := deleteBlockReq.Instance
+	deleteType := deleteBlockReq.Type
+
 	// make sure the lab is one of the approved labs
-	if !mainConfig.labIsRegistered(deleteBlockReq.LabKey) {
+	if !mainConfig.labIsRegistered(labKey) {
 		http.Error(w, ErrLabNotRegistered.Error(), 400)
 		fmt.Println("Unauthorized Lab Key")
 		return
 	}
 
-	if deleteBlockReq.Type == "single" {
-		/*
-			We need to delete a single instance of a block from the LabelsDB
-			and delete the entry from the coder's PastWorkItems list. If the
-			user submitted more than one instance of that particular block,
-			then we leave the ID in the PastWorkItems list (only deleted one
-			instance of it).
-		*/
-
-		// make map
-		singleInstanceMap := make(InstanceMap)
-		singleInstanceMap[deleteBlockReq.BlockID] = NewInstanceList(deleteBlockReq.Instance) //[]int{deleteBlockReq.Instance}
-
-		// Delete from labelsDB. Function might also delete the BlockGroup entirely,
-		// so it returns a flag
-		groupWasDeleted, _ := labelsDB.deleteBlocks(singleInstanceMap)
-
-		if !groupWasDeleted {
-
-			blockGroup, getGroupErr := labelsDB.getBlock(deleteBlockReq.BlockID)
-			if getGroupErr != nil {
-				http.Error(w, getGroupErr.Error(), 400)
-				return
-			}
-
-			// if there's a block instance with this coder still, it means they submitted
-			// more than one instance of the same block, so we keep the PastWorkItem entry,
-			// otherwise we delete it
-			if !blockGroup.coderPresent(deleteBlockReq.LabKey, deleteBlockReq.Coder) {
-				user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
-				if getUserErr != nil {
-					http.Error(w, getUserErr.Error(), 400)
-					return
-				}
-				fmt.Println("\n\nBefore deleting PastItem")
-				fmt.Println(user.PastWorkItems)
-				user.deletePastItem(deleteBlockReq.BlockID)
-				fmt.Println("\nAfter deleting PastItem")
-				fmt.Println(user.PastWorkItems)
-				fmt.Printf("\n\n")
-				labsDB.setUser(user)
-			}
-
-		} else {
-			user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
-			if getUserErr != nil {
-				http.Error(w, getUserErr.Error(), 400)
-				return
-			}
-			fmt.Println("\n\nBefore deleting PastItem")
-			fmt.Println(user.PastWorkItems)
-			user.deletePastItem(deleteBlockReq.BlockID)
-			fmt.Println("\nAfter deleting PastItem")
-			fmt.Println(user.PastWorkItems)
-			fmt.Printf("\n\n")
-			labsDB.setUser(user)
-		}
-
-	} else if deleteBlockReq.Type == "user" {
-		/*
-			We need to build an InstanceMap of all the user's completed
-			instances of blocks, and then pass that map to labelsDB.deleteBlocks()
-			function. Then we need to delete all of those block entries from the
-			user's PastWorkItems list.
-		*/
-
-		// get the user
-		user, getUserErr := labsDB.getUser(deleteBlockReq.LabKey, deleteBlockReq.Coder)
-		if getUserErr != nil {
-			http.Error(w, getUserErr.Error(), 400)
+	if deleteType == "single" {
+		deleteSingleBlockErr := labelsDB.deleteSingleBlock(labKey, coder, blockID, instance)
+		if deleteSingleBlockErr != nil {
+			http.Error(w, deleteSingleBlockErr.Error(), 400)
 			return
 		}
+	} else if deleteType == "user" {
 
-		// build user's block instance map
-		userInstances, userInstanceErr := user.getPastBlockInstanceMap()
-		if userInstanceErr != nil {
-			http.Error(w, userInstanceErr.Error(), 400)
+		deleteUserErr := labelsDB.deleteUserBlocks(labKey, coder)
+		if deleteUserErr != nil {
+			http.Error(w, deleteUserErr.Error(), 400)
 			return
 		}
-
-		// delete those instances
-		_, deleteUserInstErr := labelsDB.deleteBlocks(userInstances)
-		if deleteUserInstErr != nil {
-			http.Error(w, deleteUserInstErr.Error(), 400)
+	} else if deleteType == "lab" {
+		deleteLabErr := labelsDB.deleteLabBlocks(labKey)
+		if deleteLabErr != nil {
+			http.Error(w, deleteLabErr.Error(), 400)
 		}
-
-		// clear out user's PastWorkItems
-		user.PastWorkItems = nil
-		user.CompleteTrainBlocks = nil
-		user.CompleteRelBlocks = nil
-		labsDB.setUser(user)
-
-	} else if deleteBlockReq.Type == "lab" {
-		/*
-			We need to build an InstanceMap of all the lab's completed
-			instances of blocks, and then pass that map to labelsDB.deleteBlocks()
-			function. Then we need to delete all block entries from all of the lab's
-			user's PastWorkItems lists.
-		*/
-
-		// get the lab
-		lab, getLabErr := labsDB.getLab(deleteBlockReq.LabKey)
-		if getLabErr != nil {
-			http.Error(w, getLabErr.Error(), 400)
-			return
-		}
-
-		// get all block instances submitted by the lab
-		labInstanceMap, labInstanceErr := lab.getPastBlockInstanceMap()
-		if labInstanceErr != nil {
-			fmt.Printf("\n\n\nWe're returning a labInstanceErr\n\n\n")
-			http.Error(w, labInstanceErr.Error(), 400)
-			return
-		}
-
-		fmt.Printf("\n\n\nThe labInstanceMap that was returned from lab.getPastBlockInstanceMap()\n\n\n")
-		fmt.Println(labInstanceMap)
-
-		// delete all those instances from LabelsDB
-		_, deleteLabInstErr := labelsDB.deleteBlocks(labInstanceMap)
-		if deleteLabInstErr != nil {
-			http.Error(w, deleteLabInstErr.Error(), 400)
-			return
-		}
-
-		// clear out all users' PastWorkItems
-		for index, user := range lab.Users {
-			user.PastWorkItems = nil
-			user.CompleteTrainBlocks = nil
-			user.CompleteRelBlocks = nil
-
-			lab.Users[index] = user
-		}
-		fmt.Println("\n\n\nabout to set lab: ")
-		fmt.Println(lab)
-
-		labsDB.setLab(lab.Key, lab)
 	}
 }
 
