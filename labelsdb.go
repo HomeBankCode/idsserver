@@ -112,7 +112,30 @@ func (idList *BlockIDList) addID(id string) {
 InstanceMap is a map of Block ID's to
 instance numbers.
 */
-type InstanceMap map[string][]int
+type InstanceMap map[string]*InstanceList
+
+/*
+InstanceList is a list of Block instance numbers
+*/
+type InstanceList []int
+
+// NewInstanceList return pointer to InstanceList with single entry
+func NewInstanceList(firstInst int) *InstanceList {
+	return &InstanceList{firstInst}
+}
+
+func (instList *InstanceList) addInstance(inst int) {
+	*instList = append(*instList, inst)
+}
+
+func (instList *InstanceList) contains(inst int) bool {
+	for _, instance := range *instList {
+		if inst == instance {
+			return true
+		}
+	}
+	return false
+}
 
 /*
 BlockGroup is a container struct for multiple instances
@@ -162,6 +185,23 @@ func (group *BlockGroup) deleteInstance(instance int) error {
 			newBlocks.addBlock(block)
 		}
 	}
+	if len(newBlocks) == len(group.Blocks) {
+		return ErrInstanceNotInGroup
+	}
+	group.Blocks = newBlocks
+	return nil
+}
+
+func (group *BlockGroup) deleteInstances(instances *InstanceList) error {
+	var newBlocks BlockArray
+
+	for _, block := range group.Blocks {
+		if !instances.contains(block.Instance) {
+			block.Instance = len(newBlocks)
+			newBlocks.addBlock(block)
+		}
+	}
+
 	if len(newBlocks) == len(group.Blocks) {
 		return ErrInstanceNotInGroup
 	}
@@ -444,6 +484,8 @@ func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
 }
 
 func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
+	fmt.Println("\n\n\ninside of labelsDB.deleteBlocks()")
+
 	for blockID, instanceList := range instanceMap {
 
 		// Get the requested BlockGroup
@@ -451,11 +493,20 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 		if getGroupErr != nil {
 			return false, getGroupErr
 		}
+		fmt.Println("\n\ngot the block: ")
+		fmt.Println(blockGroup)
+		fmt.Printf("\n\n")
 
-		for _, instance := range instanceList {
-			// Delete the requested instances of the block
-			blockGroup.deleteInstance(instance)
-		}
+		blockGroup.deleteInstances(instanceList)
+
+		// for _, instance := range instanceList {
+		// 	fmt.Println("\nbefore blockGroup.deleteInstance()")
+		// 	fmt.Println(blockGroup)
+		// 	// Delete the requested instances of the block
+		// 	blockGroup.deleteInstance(instance)
+		// 	fmt.Println("\nafter blockGroup.deleteInstance()")
+		// 	fmt.Println(blockGroup)
+		// }
 
 		/*
 			If there are no more instances of the block left, then we
@@ -463,6 +514,7 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 			We delete the Block ID from the keys of the LabelsDB
 		*/
 		if len(blockGroup.Blocks) == 0 {
+			fmt.Println("\n\ninside of len(blockGroup.Blocks) == 0")
 			deleteKeyErr := db.db.Update(func(tx *bolt.Tx) error {
 				bucket := tx.Bucket([]byte(labelsBucket))
 				delKeyErr := bucket.Delete([]byte(blockGroup.ID))

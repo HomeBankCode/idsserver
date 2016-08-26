@@ -151,7 +151,7 @@ func (user *User) getPastBlockInstanceMap() (InstanceMap, error) {
 		}
 		userInstances := blockGroup.getUsersBlocks(user.ParentLab, user.Name)
 		for _, block := range userInstances {
-			instanceMap[block.ID] = append(instanceMap[block.ID], block.Instance)
+			instanceMap[block.ID].addInstance(block.Instance)
 		}
 	}
 	return instanceMap, nil
@@ -216,12 +216,24 @@ func (lab *Lab) getPastBlockInstanceMap() (InstanceMap, error) {
 		for _, blockID := range user.PastWorkItems {
 			blockGroup, blockGroupErr := labelsDB.getBlock(blockID)
 			if blockGroupErr != nil {
+				fmt.Println("\nlabelsDB.getBlock() failed in lab.getPastBlockInstanceMap()")
 				return instanceMap, blockGroupErr
 			}
 			userInstances := blockGroup.getUsersBlocks(user.ParentLab, user.Name)
 			for _, block := range userInstances {
-				instanceMap[block.ID] = append(instanceMap[block.ID], block.Instance)
+				if _, exists := instanceMap[block.ID]; exists {
+					instanceMap[block.ID].addInstance(block.Instance)
+				} else {
+					instanceMap[block.ID] = &InstanceList{}
+					instanceMap[block.ID].addInstance(block.Instance)
+				}
+
+				// fmt.Println("\n\n\nbefore map access in getPastBlockInstanceMap")
+				// instanceMap[block.ID].addInstance(block.Instance)
+				// fmt.Println("\n\n\nafter map access in getPastBlockInstanceMap")
 			}
+			fmt.Printf("\nthe instanceMap from lab.getPastBlockInstanceMap():  \n\n")
+			fmt.Println(instanceMap)
 		}
 	}
 	return instanceMap, nil

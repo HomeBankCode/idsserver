@@ -617,7 +617,7 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 		// make map
 		singleInstanceMap := make(InstanceMap)
-		singleInstanceMap[deleteBlockReq.BlockID] = []int{deleteBlockReq.Instance}
+		singleInstanceMap[deleteBlockReq.BlockID] = NewInstanceList(deleteBlockReq.Instance) //[]int{deleteBlockReq.Instance}
 
 		// Delete from labelsDB. Function might also delete the BlockGroup entirely,
 		// so it returns a flag
@@ -716,9 +716,13 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		// get all block instances submitted by the lab
 		labInstanceMap, labInstanceErr := lab.getPastBlockInstanceMap()
 		if labInstanceErr != nil {
+			fmt.Printf("\n\n\nWe're returning a labInstanceErr\n\n\n")
 			http.Error(w, labInstanceErr.Error(), 400)
 			return
 		}
+
+		fmt.Printf("\n\n\nThe labInstanceMap that was returned from lab.getPastBlockInstanceMap()\n\n\n")
+		fmt.Println(labInstanceMap)
 
 		// delete all those instances from LabelsDB
 		_, deleteLabInstErr := labelsDB.deleteBlocks(labInstanceMap)
@@ -728,11 +732,15 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// clear out all users' PastWorkItems
-		for _, user := range lab.Users {
+		for index, user := range lab.Users {
 			user.PastWorkItems = nil
 			user.CompleteTrainBlocks = nil
 			user.CompleteRelBlocks = nil
+
+			lab.Users[index] = user
 		}
+		fmt.Println("\n\n\nabout to set lab: ")
+		fmt.Println(lab)
 
 		labsDB.setLab(lab.Key, lab)
 	}
