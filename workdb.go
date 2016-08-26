@@ -24,7 +24,7 @@ var (
 
 	// ErrRanOutOfItems means chooseUniqueWorkItem can't
 	// find a suitable WorkItem for this particular user
-	ErrRanOutOfItems = errors.New("Ran out of unique items")
+	ErrRanOutOfItems = errors.New("Block checkout reached capacity for this user")
 
 	// ErrWorkItemDoesntExist is thrown when a workItemMap access is
 	// made with a key that doesn't exist

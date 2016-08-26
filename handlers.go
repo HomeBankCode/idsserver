@@ -694,6 +694,8 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 		// clear out user's PastWorkItems
 		user.PastWorkItems = nil
+		user.CompleteTrainBlocks = nil
+		user.CompleteRelBlocks = nil
 		labsDB.setUser(user)
 
 	} else if deleteBlockReq.Type == "lab" {
@@ -728,6 +730,8 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 		// clear out all users' PastWorkItems
 		for _, user := range lab.Users {
 			user.PastWorkItems = nil
+			user.CompleteTrainBlocks = nil
+			user.CompleteRelBlocks = nil
 		}
 
 		labsDB.setLab(lab.Key, lab)

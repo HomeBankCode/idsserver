@@ -54,12 +54,12 @@ type Lab struct {
 
 // User is a lab user
 type User struct {
-	Name                string   `json:"name"`
-	ParentLab           string   `json:"parent-lab"`
-	ActiveWorkItems     []string `json:"active-work-items"`
-	PastWorkItems       []string `json:"finished-work-items"`
-	CompleteTrainBlocks []string `json:"complete-train-blocks"`
-	CompleteRelBlocks   []string `json:"complete-reliability-blocks"`
+	Name                string      `json:"name"`
+	ParentLab           string      `json:"parent-lab"`
+	ActiveWorkItems     BlockIDList `json:"active-work-items"`
+	PastWorkItems       BlockIDList `json:"finished-work-items"`
+	CompleteTrainBlocks BlockIDList `json:"complete-train-blocks"`
+	CompleteRelBlocks   BlockIDList `json:"complete-reliability-blocks"`
 }
 
 func (user *User) addWorkItem(itemID string) {
@@ -69,7 +69,7 @@ func (user *User) addWorkItem(itemID string) {
 			return
 		}
 	}
-	user.ActiveWorkItems = append(user.ActiveWorkItems, itemID)
+	user.ActiveWorkItems.addID(itemID)
 }
 
 func (user *User) addCompleteTrainBlock(block Block) {
@@ -80,7 +80,7 @@ func (user *User) addCompleteTrainBlock(block Block) {
 		}
 	}
 	// add ID
-	user.CompleteTrainBlocks = append(user.CompleteTrainBlocks, block.ID)
+	user.CompleteTrainBlocks.addID(block.ID)
 }
 
 func (user *User) addCompleteRelBlock(block Block) {
@@ -90,18 +90,18 @@ func (user *User) addCompleteRelBlock(block Block) {
 		}
 	}
 	// add ID
-	user.CompleteRelBlocks = append(user.CompleteRelBlocks, block.ID)
+	user.CompleteRelBlocks.addID(block.ID)
 }
 
 func (user *User) inactivateWorkItem(item WorkItem) error {
-	var newActiveItems []string
+	var newActiveItems BlockIDList
 	foundItemInActive := false
 
-	for _, element := range user.ActiveWorkItems {
-		if item.ID == element {
+	for _, activeID := range user.ActiveWorkItems {
+		if item.ID == activeID {
 			foundItemInActive = true
 		} else {
-			newActiveItems = append(newActiveItems, element)
+			newActiveItems.addID(activeID)
 		}
 	}
 	if foundItemInActive {
@@ -112,7 +112,7 @@ func (user *User) inactivateWorkItem(item WorkItem) error {
 			}
 		}
 		if !itemAlreadyInPastList {
-			user.PastWorkItems = append(user.PastWorkItems, item.ID)
+			user.PastWorkItems.addID(item.ID)
 		}
 		user.ActiveWorkItems = newActiveItems
 	} else {
@@ -122,14 +122,14 @@ func (user *User) inactivateWorkItem(item WorkItem) error {
 }
 
 func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
-	var newActiveItems []string
+	var newActiveItems BlockIDList
 	foundItem := false
 
-	for _, element := range user.ActiveWorkItems {
-		if item.ID == element {
+	for _, activeID := range user.ActiveWorkItems {
+		if item.ID == activeID {
 			foundItem = true
 		} else {
-			newActiveItems = append(newActiveItems, element)
+			newActiveItems.addID(activeID)
 		}
 	}
 	//user.PastWorkItems = append(user.PastWorkItems, item)
@@ -158,14 +158,33 @@ func (user *User) getPastBlockInstanceMap() (InstanceMap, error) {
 }
 
 func (user *User) deletePastItem(blockID string) {
-	var newIDList BlockIDList
+	var newBlockIDList BlockIDList
+	var newTrainIDList BlockIDList
+	var newReliaIDList BlockIDList
 
+	// clear PastWorkItems
 	for _, pastBlockID := range user.PastWorkItems {
 		if !(pastBlockID == blockID) {
-			newIDList.addID(pastBlockID)
+			newBlockIDList.addID(pastBlockID)
 		}
 	}
-	user.PastWorkItems = newIDList
+	user.PastWorkItems = newBlockIDList
+
+	// clear CompleteTrainBlocks
+	for _, pastTrainID := range user.CompleteTrainBlocks {
+		if !(pastTrainID == blockID) {
+			newTrainIDList.addID(pastTrainID)
+		}
+	}
+	user.CompleteTrainBlocks = newTrainIDList
+
+	// clear CompleteRelBlocks
+	for _, pastReliaID := range user.CompleteRelBlocks {
+		if !(pastReliaID == blockID) {
+			newReliaIDList.addID(pastReliaID)
+		}
+	}
+	user.CompleteRelBlocks = newReliaIDList
 }
 
 func (lab *Lab) encode() ([]byte, error) {
@@ -208,7 +227,7 @@ func (lab *Lab) getPastBlockInstanceMap() (InstanceMap, error) {
 	return instanceMap, nil
 }
 
-// LabsDB is wrapper around a boltdb
+// LabsDB is a wrapper around a boltdb
 type LabsDB struct {
 	db *bolt.DB
 }
@@ -438,16 +457,17 @@ func (db *LabsDB) setUser(user User) error {
 	return nil
 }
 
-func (db *LabsDB) getCompletedBlocks(labKey string) ([]string, error) {
-	var blocks []string
-	lab, err := db.getLab(labKey)
-	if err != nil {
-		return blocks, err
+func (db *LabsDB) getCompletedBlocks(labKey string) (BlockIDList, error) {
+	var blocks BlockIDList
+
+	lab, getLabErr := db.getLab(labKey)
+	if getLabErr != nil {
+		return blocks, getLabErr
 	}
 
 	for _, user := range lab.Users {
 		for _, blockID := range user.PastWorkItems {
-			blocks = append(blocks, blockID)
+			blocks.addID(blockID)
 		}
 	}
 	return blocks, nil
