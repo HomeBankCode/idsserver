@@ -206,7 +206,6 @@ func main() {
 	http.HandleFunc("/getblock/", getBlockHandler)
 	http.HandleFunc("/deleteblock/", deleteBlockHandler)
 	http.HandleFunc("/deleteuser/", deleteUserHandler)
-	http.HandleFunc("/deletelab/", deleteLabHandler)
 	http.HandleFunc("/labinfo/", labInfoHandler)
 	http.HandleFunc("/alllabinfo/", allLabInfoHandler)
 	http.HandleFunc("/adduser/", addUserHandler)

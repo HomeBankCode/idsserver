@@ -143,17 +143,32 @@ func (user *User) inactivateIncompleteWorkItem(item WorkItem) error {
 
 func (user *User) getPastBlockInstanceMap() (InstanceMap, error) {
 	instanceMap := make(InstanceMap)
-
+	fmt.Println("inside user.getPastBlockInstanceMap ----- made the map")
 	for _, blockID := range user.PastWorkItems {
 		blockGroup, blockGroupErr := labelsDB.getBlock(blockID)
 		if blockGroupErr != nil {
 			return instanceMap, blockGroupErr
 		}
+		fmt.Println("inside user.getPastBlockInstanceMap ----- got a blockGroup")
 		userInstances := blockGroup.getUsersBlocks(user.ParentLab, user.Name)
 		for _, block := range userInstances {
-			instanceMap[block.ID].addInstance(block.Instance)
+
+			if _, exists := instanceMap[block.ID]; exists {
+				instanceMap[block.ID].addInstance(block.Instance)
+			} else {
+				instanceMap[block.ID] = &InstanceList{}
+				instanceMap[block.ID].addInstance(block.Instance)
+			}
+			fmt.Println("inside user.getPastBlockInstanceMap ----- added instance to map")
 		}
 	}
+	fmt.Println("The instanceMap being returned from user.getPastBlockInstanceMap(): ")
+	for key, value := range instanceMap {
+		for _, instance := range *value {
+			fmt.Println("\nkey: ", key, "\t", "inst: ", instance)
+		}
+	}
+	fmt.Println("\n\n", instanceMap)
 	return instanceMap, nil
 }
 
@@ -516,4 +531,18 @@ func (db *LabsDB) getCompleteReliaBlocks(labKey string) (BlockIDList, error) {
 		}
 	}
 	return blocks, nil
+}
+
+func (db *LabsDB) deleteUser(labKey, username string) error {
+	deleteBlocksErr := labelsDB.deleteUserBlocks(labKey, username)
+	if deleteBlocksErr != nil {
+		return deleteBlocksErr
+	}
+	lab, getLabErr := db.getLab(labKey)
+	if getLabErr != nil {
+		return getLabErr
+	}
+	lab.deleteUser(username)
+	labsDB.setLab(labKey, lab)
+	return nil
 }

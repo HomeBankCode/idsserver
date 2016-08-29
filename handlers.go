@@ -633,9 +633,39 @@ func deleteBlockHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	parseFormErr := r.ParseForm()
+	if parseFormErr != nil {
+		http.Error(w, parseFormErr.Error(), 400)
+		return
+	}
 
-}
+	fmt.Println("got a delete blocks request")
+	var deleteUserReq IDSRequest
 
-func deleteLabHandler(w http.ResponseWriter, r *http.Request) {
+	jsonDataFromHTTP, readBodyErr := ioutil.ReadAll(r.Body)
+	if readBodyErr != nil {
+		http.Error(w, readBodyErr.Error(), 400)
+		return
+	}
 
+	fmt.Println()
+	unmarshalErr := json.Unmarshal(jsonDataFromHTTP, &deleteUserReq)
+	if unmarshalErr != nil {
+		http.Error(w, unmarshalErr.Error(), 400)
+		return
+	}
+	fmt.Println(deleteUserReq)
+
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(deleteUserReq.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
+	deleteUserErr := labsDB.deleteUser(deleteUserReq.LabKey, deleteUserReq.Username)
+	if deleteUserErr != nil {
+		http.Error(w, deleteUserErr.Error(), 400)
+		return
+	}
 }
