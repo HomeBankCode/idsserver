@@ -484,6 +484,8 @@ func (db *LabelsDB) getAllBlockGroups() (BlockGroupArray, error) {
 }
 
 func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
+	keyWasDeleted := false
+
 	for blockID, instanceList := range instanceMap {
 		fmt.Println("\n\n\ndealing with block: ", blockID)
 		fmt.Printf("\n\n")
@@ -517,18 +519,19 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 				return false, deleteKeyErr
 			}
 			fmt.Println("\n\nblockGroup key delete worked")
+			keyWasDeleted = true
 			continue
 		}
 
 		// Set the updated version of the group, with instance deleted
 		setNewGroupErr := labelsDB.setBlockGroup(*blockGroup)
 		if setNewGroupErr != nil {
-			return false, setNewGroupErr
+			return keyWasDeleted, setNewGroupErr
 		}
 		fmt.Println("\n\ngot past labelsDB.setBlockGroup()")
 	}
 	fmt.Println("outside of labelsDB.deleteBlocks() for loop, about to return")
-	return false, nil
+	return keyWasDeleted, nil
 }
 
 /*
@@ -548,6 +551,7 @@ func (db *LabelsDB) deleteSingleBlock(labKey, coder, blockID string, instance in
 	groupWasDeleted, _ := db.deleteBlocks(singleInstanceMap)
 
 	if !groupWasDeleted {
+		fmt.Println("\n\ninside !groupWasDeleted")
 		blockGroup, getGroupErr := db.getBlock(blockID)
 		if getGroupErr != nil {
 			return getGroupErr
@@ -564,7 +568,11 @@ func (db *LabelsDB) deleteSingleBlock(labKey, coder, blockID string, instance in
 			labsDB.setUser(user)
 		}
 	} else {
+		fmt.Println("inside groupWasDeleted")
 		user, getUserErr := labsDB.getUser(labKey, coder)
+		fmt.Println("\n\nuser from labsDB.getUser():")
+		fmt.Println("\n\n", user)
+
 		if getUserErr != nil {
 			return getUserErr
 		}
