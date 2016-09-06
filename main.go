@@ -69,6 +69,11 @@ var (
 	workItemMap WorkItemMap
 
 	/*
+		workItemMapEncoded is a json encoded version of the workItemMap
+	*/
+	workItemMapEncoded []byte
+
+	/*
 		activeWorkItems is a map of WorkItem ID's. All the ID's
 		represent blocks which have been sent out to be worked on.
 		(i.e. active blocks)
@@ -105,12 +110,12 @@ It's loaded from the config.json file read in as argument
 from the command line upon starting the server.
 */
 type Config struct {
-	AdminKey      string   `json:"admin-key"`
-	WorkMapLoaded bool     `json:"work-map-loaded"`
+	AdminKey      string   `json:"admin_key"`
+	WorkMapLoaded bool     `json:"work_map_loaded"`
 	Labs          []string `json:"labs"`
-	LabsDBPath    string   `json:"labs-db-path"`
-	WorkDBPath    string   `json:"work-db-path"`
-	LabelsDBPath  string   `json:"labels-db-path"`
+	LabsDBPath    string   `json:"labs_db_path"`
+	WorkDBPath    string   `json:"work_db_path"`
+	LabelsDBPath  string   `json:"labels_db_path"`
 }
 
 func (conf *Config) encode() ([]byte, error) {
@@ -193,18 +198,21 @@ func main() {
 
 	if !mainConfig.WorkMapLoaded {
 		workItemMap = dataMap.partitionIntoWorkItemsMap()
+		workItemMapEncoded, _ = json.Marshal(workItemMap)
 		workDB.persistWorkItemMap(workItemMap)
 		mainConfig.WorkMapLoaded = true
 		mainConfig.writeFile()
 	} else {
 		workItemMap = workDB.loadItemMap()
+		workItemMapEncoded, _ = json.Marshal(workItemMap)
 	}
 
 	fmt.Println("# of work items map: ", len(workItemMap))
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/v1/get-block/", getBlockHandler)
-	http.HandleFunc("/v1/get-specific-block/", getBlockHandler)
+	http.HandleFunc("/v1/get-block-list/", getWorkItemMapHandler)
+	http.HandleFunc("/v1/get-specific-block/", getSpecificBlockHandler)
 	http.HandleFunc("/v1/delete-block/", deleteBlockHandler)
 	http.HandleFunc("/v1/delete-user/", deleteUserHandler)
 	http.HandleFunc("/v1/lab-info/", labInfoHandler)

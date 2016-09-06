@@ -10,6 +10,7 @@ import (
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "this is the mainHandler")
+
 }
 
 /*
@@ -17,12 +18,12 @@ IDSRequest is a struct representing a request
 sent to the server asking for a single block (i.e. WorkItem)
 */
 type IDSRequest struct {
-	LabKey          string `json:"lab-key"`
-	LabName         string `json:"lab-name"`
+	LabKey          string `json:"lab_key"`
+	LabName         string `json:"lab_name"`
 	Username        string `json:"username"`
 	Training        bool   `json:"training"`
 	Reliability     bool   `json:"reliability"`
-	TrainingPackNum int    `json:"train-pack-num"`
+	TrainingPackNum int    `json:"train_pack_num"`
 }
 
 /*
@@ -30,8 +31,8 @@ WorkItemDataReq is a request for the label data
 for a particular work item from the database.
 */
 type WorkItemDataReq struct {
-	ItemID      string `json:"item-id"`
-	LabKey      string `json:"lab-key"`
+	ItemID      string `json:"item_id"`
+	LabKey      string `json:"lab_key"`
 	Username    string `json:"username"`
 	Training    bool   `json:"training"`
 	Reliability bool   `json:"reliability"`
@@ -43,8 +44,8 @@ WorkItemReleaseReq is a request to inactivate a
 group of blocks without coding them.
 */
 type WorkItemReleaseReq struct {
-	LabKey   string   `json:"lab-key"`
-	LabName  string   `json:"lab-name"`
+	LabKey   string   `json:"lab_key"`
+	LabName  string   `json:"lab_name"`
 	Username string   `json:"username"`
 	BlockIds []string `json:"blocks"`
 }
@@ -55,10 +56,10 @@ labels for a collection of block/instances. The BlockMap
 if a map of Block ID's to an array of instance numbers
 */
 type DeleteBlockRequest struct {
-	LabKey   string `json:"lab-key"`
+	LabKey   string `json:"lab_key"`
 	Coder    string `json:"coder"`
-	Type     string `json:"delete-type"`
-	BlockID  string `json:"block-id"`
+	Type     string `json:"delete_type"`
+	BlockID  string `json:"block_id"`
 	Instance int    `json:"instance"`
 }
 
@@ -77,7 +78,7 @@ shutdown the server. This will tell the server
 to persist the current state to disk and shut down
 */
 type ShutdownRequest struct {
-	AdminKey string `json:"admin-key"`
+	AdminKey string `json:"admin_key"`
 }
 
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +141,41 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", dispositionString)
 
 	http.ServeFile(w, r, workItem.BlockPath)
+
+}
+
+func getSpecificBlockHandler(w http.ResponseWriter, r *http.Request) {
+	parseFormErr := r.ParseForm()
+	if parseFormErr != nil {
+		http.Error(w, parseFormErr.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request to download a specific block")
+	var workItemReq WorkItemDataReq
+
+	jsonDataFromHTTP, readBodyErr := ioutil.ReadAll(r.Body)
+	if readBodyErr != nil {
+		http.Error(w, readBodyErr.Error(), 400)
+		return
+	}
+
+	fmt.Println()
+	unmarshalErr := json.Unmarshal(jsonDataFromHTTP, &workItemReq)
+	if unmarshalErr != nil {
+		http.Error(w, unmarshalErr.Error(), 400)
+		return
+	}
+	fmt.Println(workItemReq)
+
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(workItemReq.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
+
 
 }
 
@@ -668,4 +704,38 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, deleteUserErr.Error(), 400)
 		return
 	}
+}
+
+func getWorkItemMapHandler(w http.ResponseWriter, r *http.Request) {
+	parseFormErr := r.ParseForm()
+	if parseFormErr != nil {
+		http.Error(w, parseFormErr.Error(), 400)
+		return
+	}
+
+	fmt.Println("got a request for the WorkItem map")
+	var idsRequest IDSRequest
+
+	jsonDataFromHTTP, readBodyErr := ioutil.ReadAll(r.Body)
+
+	fmt.Println()
+
+	if readBodyErr != nil {
+		http.Error(w, readBodyErr.Error(), 400)
+		return
+	}
+
+	fmt.Println()
+	json.Unmarshal(jsonDataFromHTTP, &idsRequest)
+	fmt.Println(idsRequest)
+
+	// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(idsRequest.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+	w.Write(workItemMapEncoded)
+
+	// json.NewEncoder(w).Encode(labBlocks)
 }

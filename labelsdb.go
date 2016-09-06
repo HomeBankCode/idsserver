@@ -143,7 +143,7 @@ of the same block. So you can have a single block coded
 multiple times by different (or identical) users.
 */
 type BlockGroup struct {
-	ID          string     `json:"block-id"`
+	ID          string     `json:"block_id"`
 	Blocks      BlockArray `json:"blocks"`
 	Training    bool       `json:"training"`
 	Reliability bool       `json:"reliability"`
@@ -247,16 +247,16 @@ func decodeBlockGroupJSON(data []byte) (*BlockGroup, error) {
 
 // Block represents a CLAN conversation block
 type Block struct {
-	ClanFile    string `json:"clan-file"`
-	Index       int    `json:"block-index"`
-	Instance    int    `json:"block-instance"`
+	ClanFile    string `json:"clan_file"`
+	Index       int    `json:"block_index"`
+	Instance    int    `json:"block_instance"`
 	Clips       []Clip `json:"clips"`
-	FanOrMan    bool   `json:"fan-or-man"`
-	DontShare   bool   `json:"dont-share"`
+	FanOrMan    bool   `json:"fan_or_man"`
+	DontShare   bool   `json:"dont_share"`
 	ID          string `json:"id"`
 	Coder       string `json:"coder"`
-	LabKey      string `json:"lab-key"`
-	LabName     string `json:"lab-name"`
+	LabKey      string `json:"lab_key"`
+	LabName     string `json:"lab_name"`
 	Username    string `json:"username"`
 	Training    bool   `json:"training"`
 	Reliability bool   `json:"reliability"`
@@ -285,17 +285,17 @@ func (block *Block) appendClip(clip Clip) {
 
 // Clip represent a single tier from a conversation block
 type Clip struct {
-	Index           int    `json:"clip-index"`
-	Tier            string `json:"clip-tier"`
+	Index           int    `json:"clip_index"`
+	Tier            string `json:"clip_tier"`
 	Multiline       bool   `json:"multiline"`
-	MultiTierParent string `json:"multi-tier-parent"`
-	StartTime       string `json:"start-time"`
-	OffsetTime      string `json:"offset-time"`
+	MultiTierParent string `json:"multi_tier_parent"`
+	StartTime       string `json:"start_time"`
+	OffsetTime      string `json:"offset_time"`
 	TimeStamp       string `json:"timestamp"`
 	Classification  string `json:"classification"`
-	LabelDate       string `json:"label-date"`
+	LabelDate       string `json:"label_date"`
 	Coder           string `json:"coder"`
-	GenderLabel     string `json:"gender-label"`
+	GenderLabel     string `json:"gender_label"`
 }
 
 // LoadLabelsDB loads the global workDB

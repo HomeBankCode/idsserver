@@ -41,11 +41,11 @@ type WorkItem struct {
 	FileName        string `json:"filename"`
 	Block           int    `json:"block"`
 	Active          bool   `json:"active"`
-	BlockPath       string `json:"block-path"`
-	TimesCoded      int    `json:"times-coded"`
+	BlockPath       string `json:"block_path"`
+	TimesCoded      int    `json:"times_coded"`
 	Training        bool   `json:"training"`
 	Reliability     bool   `json:"reliability"`
-	TrainingPackNum int    `json:"train-pack-num"`
+	TrainingPackNum int    `json:"train_pack_num"`
 }
 
 // WorkDB is a wrapper around a boltDB

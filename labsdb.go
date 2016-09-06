@@ -48,18 +48,18 @@ var (
 // struct representing lab metadata
 type Lab struct {
 	Key     string          `json:"key"`
-	LabName string          `json:"lab-name"`
+	LabName string          `json:"lab_name"`
 	Users   map[string]User `json:"users"`
 }
 
 // User is a lab user
 type User struct {
 	Name                string      `json:"name"`
-	ParentLab           string      `json:"parent-lab"`
-	ActiveWorkItems     BlockIDList `json:"active-work-items"`
-	PastWorkItems       BlockIDList `json:"finished-work-items"`
-	CompleteTrainBlocks BlockIDList `json:"complete-train-blocks"`
-	CompleteRelBlocks   BlockIDList `json:"complete-reliability-blocks"`
+	ParentLab           string      `json:"parent_lab"`
+	ActiveWorkItems     BlockIDList `json:"active_work_items"`
+	PastWorkItems       BlockIDList `json:"finished_work_items"`
+	CompleteTrainBlocks BlockIDList `json:"complete_train_blocks"`
+	CompleteRelBlocks   BlockIDList `json:"complete_reliability_blocks"`
 }
 
 func (user *User) addWorkItem(itemID string) {

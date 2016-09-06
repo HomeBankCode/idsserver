@@ -1,13 +1,13 @@
 {
- "admin-key": "1234567654321",
- "work-map-loaded": true,
+ "admin_key": "1234567654321",
+ "work_map_loaded": true,
  "labs": [
   "1d9d9117e8",
   "75a0d2368d",
   "67890",
   "09876"
  ],
- "labs-db-path": "db/labs.db",
- "work-db-path": "db/work.db",
- "labels-db-path": "db/labels.db"
+ "labs_db_path": "db/labs.db",
+ "work_db_path": "db/work.db",
+ "labels_db_path": "db/labels.db"
 }
