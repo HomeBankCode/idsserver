@@ -211,8 +211,8 @@ func main() {
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/v1/get-block/", getBlockHandler)
-	http.HandleFunc("/v1/get-block-list/", getWorkItemMapHandler)
 	http.HandleFunc("/v1/get-specific-block/", getSpecificBlockHandler)
+	http.HandleFunc("/v1/get-block-list/", getWorkItemMapHandler)
 	http.HandleFunc("/v1/delete-block/", deleteBlockHandler)
 	http.HandleFunc("/v1/delete-user/", deleteUserHandler)
 	http.HandleFunc("/v1/lab-info/", labInfoHandler)

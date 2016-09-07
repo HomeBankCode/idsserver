@@ -30,8 +30,8 @@ type IDSRequest struct {
 WorkItemDataReq is a request for the label data
 for a particular work item from the database.
 */
-type WorkItemDataReq struct {
-	ItemID      string `json:"item_id"`
+type BlockReq struct {
+	ItemID      string `json:"block_id"`
 	LabKey      string `json:"lab_key"`
 	Username    string `json:"username"`
 	Training    bool   `json:"training"`
@@ -72,6 +72,16 @@ func (br *IDSRequest) userFromDB() (User, error) {
 	return user, err
 }
 
+func (br *BlockReq) userID() string {
+	return br.LabKey + ":::" + br.Username
+}
+
+func (br *BlockReq) userFromDB() (User, error) {
+	user, err := labsDB.getUser(br.LabKey, br.Username)
+	return user, err
+}
+
+
 /*
 ShutdownRequest is a JSON encoded request to
 shutdown the server. This will tell the server
@@ -88,7 +98,7 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var blockRequest IDSRequest
+	var blockReq BlockReq
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -97,31 +107,39 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &blockRequest)
+	json.Unmarshal(jsonDataFromHTTP, &blockReq)
 
-	fmt.Println(blockRequest)
+	fmt.Println(blockReq)
 
-	fmt.Println(blockRequest.userID())
+	fmt.Println(blockReq.userID())
+
+		// make sure the lab is one of the approved labs
+	if !mainConfig.labIsRegistered(blockReq.LabKey) {
+		http.Error(w, ErrLabNotRegistered.Error(), 400)
+		fmt.Println("Unauthorized Lab Key")
+		return
+	}
+
 
 	var workItem WorkItem
 	var chooseWIErr error
 
-	if blockRequest.Training {
-		workItem, chooseWIErr = chooseTrainingWorkItem(blockRequest)
+	if blockReq.Training {
+		workItem, chooseWIErr = chooseTrainingWorkItem(blockReq)
 		fmt.Println("got past chooseTrainingWorkItem()")
 		if chooseWIErr != nil {
 			fmt.Println("returning error http code from chooseTrainingWorkItem()")
 			http.Error(w, chooseWIErr.Error(), 404)
 			return
 		}
-	} else if blockRequest.Reliability {
-		workItem, chooseWIErr = chooseReliabilityWorkItem(blockRequest)
+	} else if blockReq.Reliability {
+		workItem, chooseWIErr = chooseReliabilityWorkItem(blockReq)
 		if chooseWIErr != nil {
 			http.Error(w, chooseWIErr.Error(), 404)
 			return
 		}
 	} else {
-		workItem, chooseWIErr = chooseRegularWorkItem(blockRequest)
+		workItem, chooseWIErr = chooseRegularWorkItem(blockReq)
 		if chooseWIErr != nil {
 			http.Error(w, chooseWIErr.Error(), 404)
 			return
@@ -152,7 +170,7 @@ func getSpecificBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("got a request to download a specific block")
-	var workItemReq WorkItemDataReq
+	var blockReq BlockReq
 
 	jsonDataFromHTTP, readBodyErr := ioutil.ReadAll(r.Body)
 	if readBodyErr != nil {
@@ -161,21 +179,41 @@ func getSpecificBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	unmarshalErr := json.Unmarshal(jsonDataFromHTTP, &workItemReq)
+	unmarshalErr := json.Unmarshal(jsonDataFromHTTP, &blockReq)
 	if unmarshalErr != nil {
 		http.Error(w, unmarshalErr.Error(), 400)
 		return
 	}
-	fmt.Println(workItemReq)
+	fmt.Println(blockReq)
 
 	// make sure the lab is one of the approved labs
-	if !mainConfig.labIsRegistered(workItemReq.LabKey) {
+	if !mainConfig.labIsRegistered(blockReq.LabKey) {
 		http.Error(w, ErrLabNotRegistered.Error(), 400)
 		fmt.Println("Unauthorized Lab Key")
 		return
 	}
 
+	workItem, chooseWIErr := chooseSpecificBlock(blockReq)
+	
+	if chooseWIErr != nil {
+		fmt.Println("returning error http code from chooseSpecificBlock()")
+		http.Error(w, chooseWIErr.Error(), 404)
+		return
+	}
 
+	fmt.Println(workItem)
+	blockPath := workItem.BlockPath
+	blockName := path.Base(blockPath)
+	filename := path.Join(workItem.FileName, blockName)
+
+	dispositionString := "attachment; filename=" + filename
+
+	fmt.Println(workItem)
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", dispositionString)
+
+	http.ServeFile(w, r, workItem.BlockPath)
 
 }
 
@@ -347,7 +385,7 @@ func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("got a request for work item data")
-	var workItemReq WorkItemDataReq
+	var blockReq BlockReq
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(r.Body)
 
@@ -358,15 +396,15 @@ func getLabelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println()
-	json.Unmarshal(jsonDataFromHTTP, &workItemReq)
-	fmt.Println(workItemReq)
+	json.Unmarshal(jsonDataFromHTTP, &blockReq)
+	fmt.Println(blockReq)
 
-	blockGroup, getBlockErr := labelsDB.getBlock(workItemReq.ItemID)
+	blockGroup, getBlockErr := labelsDB.getBlock(blockReq.ItemID)
 	if getBlockErr != nil {
 		http.Error(w, ErrWorkItemDoesntExist.Error(), 400)
 		return
 	}
-	blocks := blockGroup.getUsersBlocks(workItemReq.LabKey, workItemReq.Username)
+	blocks := blockGroup.getUsersBlocks(blockReq.LabKey, blockReq.Username)
 
 	fmt.Println(blocks)
 	json.NewEncoder(w).Encode(blocks)

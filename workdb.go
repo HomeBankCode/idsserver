@@ -223,7 +223,7 @@ in the workItemMap.
 Also adds the work item to the User's checked out WorkItem
 list
 */
-func activateWorkItem(item WorkItem, request IDSRequest) {
+func activateWorkItem(item WorkItem, request BlockReq) {
 	value := workItemMap[item.ID]
 	value.Active = true
 
@@ -242,16 +242,7 @@ func activateWorkItem(item WorkItem, request IDSRequest) {
 	labsDB.setUser(user)
 }
 
-// func fileExistsInWorkItemArray(file string, array []WorkItem) bool {
-// 	for _, item := range array {
-// 		if item.FileName == file {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
-func chooseRegularWorkItem(request IDSRequest) (WorkItem, error) {
+func chooseRegularWorkItem(request BlockReq) (WorkItem, error) {
 	var workItem WorkItem
 	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
 	if getUsrErr != nil {
@@ -270,7 +261,7 @@ func chooseRegularWorkItem(request IDSRequest) (WorkItem, error) {
 	return workItem, ErrRanOutOfItems
 }
 
-func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool {
+func blockAppropriateForUser(item WorkItem, request BlockReq, user User) bool {
 	if item.Active {
 		return false
 	} else if item.TimesCoded != 0 {
@@ -287,7 +278,7 @@ func blockAppropriateForUser(item WorkItem, request IDSRequest, user User) bool 
 	return true
 }
 
-func userHasBlockFromFile(item WorkItem, request IDSRequest, user User) bool {
+func userHasBlockFromFile(item WorkItem, request BlockReq, user User) bool {
 	/*
 		Check if user already has a block
 		from the same file
@@ -358,17 +349,20 @@ func (db *WorkDB) persistWorkItemMap(itemMap WorkItemMap) {
 	}
 }
 
-// func getAllCompleteBlockIDs() []string {
-// 	var blockIDs []string
-// 	for _, item := range workItemMap {
-// 		if item.TimesCoded > 0 {
-// 			blockIDs = append(blockIDs, item.ID)
-// 		}
-// 	}
-// 	return blockIDs
-// }
+func chooseSpecificBlock(req BlockReq) (WorkItem, error) {
+	var workItem WorkItem
 
-func chooseTrainingWorkItem(request IDSRequest) (WorkItem, error) {
+	workItem, exists := workItemMap[req.ItemID]
+	if !exists {
+		return workItem, ErrWorkItemDoesntExist
+	}
+	activateWorkItem(workItem, req)
+
+	return workItem, nil
+}
+
+
+func chooseTrainingWorkItem(request BlockReq) (WorkItem, error) {
 	var workItem WorkItem
 	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
 	if getUsrErr != nil {
@@ -388,7 +382,19 @@ func chooseTrainingWorkItem(request IDSRequest) (WorkItem, error) {
 	return workItem, ErrRanOutOfItems
 }
 
-func chooseReliabilityWorkItem(request IDSRequest) (WorkItem, error) {
+func chooseSpecificTrainingBlock(req BlockReq) (WorkItem, error) {
+	var workItem WorkItem
+
+	workItem, exists := workItemMap[req.ItemID]
+	if !exists {
+		return workItem, ErrWorkItemDoesntExist
+	}
+	activateWorkItem(workItem, req)
+
+	return workItem, nil
+}
+
+func chooseReliabilityWorkItem(request BlockReq) (WorkItem, error) {
 	var workItem WorkItem
 	user, getUsrErr := labsDB.getUser(request.LabKey, request.Username)
 	if getUsrErr != nil {
@@ -408,48 +414,25 @@ func chooseReliabilityWorkItem(request IDSRequest) (WorkItem, error) {
 	return workItem, ErrRanOutOfItems
 }
 
-func blockAppropriateForUserTraining(item WorkItem, request IDSRequest, user User) bool {
+func blockAppropriateForUserTraining(item WorkItem, request BlockReq, user User) bool {
 	if !item.Training {
 		return false
-	} else if userHasThisBlock(item, request, user) {
+	} else if user.hasThisBlock(item.ID) {
 		fmt.Println("user has this block already")
 		return false
 	}
 	return true
 }
 
-func blockAppropriateForUserReliability(item WorkItem, request IDSRequest, user User) bool {
+func blockAppropriateForUserReliability(item WorkItem, request BlockReq, user User) bool {
 	if !item.Reliability {
 		return false
-	} else if userPreviouslyCodedReliability(item, request, user) {
+	} else if user.prevCodedRelia(item.ID) {
 		fmt.Println("item has been coded already by this user")
 		return false
-	} else if userHasThisBlock(item, request, user) {
+	} else if user.hasThisBlock(item.ID) {
 		fmt.Println("user has block from this file")
 		return false
 	}
 	return true
-}
-
-func userHasThisBlock(item WorkItem, request IDSRequest, user User) bool {
-	for _, userItemID := range user.ActiveWorkItems {
-		if userItemID == item.ID {
-			return true
-		}
-	}
-	return false
-}
-
-/*
-checks if this reliability block has been previously coded
-by this particular user. Ensures that users only get blocks
-they've never coded before.
-*/
-func userPreviouslyCodedReliability(item WorkItem, request IDSRequest, user User) bool {
-	for _, userItem := range user.CompleteRelBlocks {
-		if userItem == item.ID {
-			return true
-		}
-	}
-	return false
 }

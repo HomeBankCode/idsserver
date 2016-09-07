@@ -202,6 +202,26 @@ func (user *User) deletePastItem(blockID string) {
 	user.CompleteRelBlocks = newReliaIDList
 }
 
+func (user *User) hasThisBlock(blockID string) bool {
+	for _, userItemID := range user.ActiveWorkItems {
+		if userItemID == blockID {
+			return true
+		}
+	}
+	return false
+
+}
+
+func (user *User) prevCodedRelia(blockID string) bool {
+	for _, userItem := range user.CompleteRelBlocks {
+		if userItem == blockID {
+			return true
+		}
+	}
+	return false
+
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
