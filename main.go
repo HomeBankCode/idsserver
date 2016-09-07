@@ -148,6 +148,13 @@ func (conf *Config) labIsRegistered(labKey string) bool {
 	return false
 }
 
+func (conf *Config) labIsAdmin(labKey string) bool {
+	if labKey == conf.AdminKey {
+		return true
+	}
+	return false
+}
+
 func readConfigFile(path string) Config {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
