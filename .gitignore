@@ -12,3 +12,5 @@ regular_path_manifest.csv
 train_data_tree
 training_path_manifest.csv
 debug
+migrate
+sample_config_admin.json

@@ -233,6 +233,10 @@ func main() {
 	http.HandleFunc("/v1/get-train-labels/", getTrainingLabelsHandler)
 	http.HandleFunc("/v1/get-relia-labels/", getReliabilityHandler)
 
+	http.HandleFunc("/v1/migrate-add-block-labels/", migrateAddLabeledBlockHandler)
+	http.HandleFunc("/v1/migrate-add-user/", migrateAddUserHandler)
+	http.HandleFunc("/v1/migrate-set-active-work-item/", migrateSetActiveWorkItemHandler)
+
 	http.ListenAndServe(":4000", nil)
 
 }

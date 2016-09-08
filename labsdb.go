@@ -241,12 +241,14 @@ func decodeLabJSON(data []byte) (*Lab, error) {
 
 func (lab *Lab) addUser(user User) {
 	user.ParentLab = lab.Key
+	if _, exists := lab.Users[user.Name]; exists {
+		return
+	}
 	lab.Users[user.Name] = user
 }
 
 func (lab *Lab) deleteUser(user string) {
 	delete(lab.Users, user)
-
 }
 
 func (lab *Lab) getPastBlockInstanceMap() (InstanceMap, error) {
@@ -325,7 +327,7 @@ func (db *LabsDB) Close() {
 func (db *LabsDB) addUser(labKey, labName, username string) {
 	newUser := User{Name: username,
 		ParentLab:       labKey,
-		ActiveWorkItems: make([]string, 0)}
+		ActiveWorkItems: make(BlockIDList, 0)}
 
 	if db.labExists(labKey) {
 		if db.userExists(labKey, username) {
@@ -483,11 +485,15 @@ func (db *LabsDB) getAllLabs() []*Lab {
 }
 
 func (db *LabsDB) getUser(labKey, username string) (User, error) {
+	fmt.Println("\n\n\ntrying to get lab:  " + labKey)
 	lab, err := db.getLab(labKey)
 	if err != nil {
-		fmt.Println("getLab in getUser failed")
+		fmt.Println("\ngetLab in getUser failed")
 		return User{}, err
 	}
+
+	fmt.Println("\n\nthe lab from db.getLab():")
+	fmt.Println(lab)
 
 	user, exists := lab.Users[username]
 	if !exists {
