@@ -187,7 +187,7 @@ in the workItemMap
 func inactivateWorkItem(item WorkItem, request IDSRequest) {
 	value := workItemMap[item.ID]
 	value.Active = false
-	value.TimesCoded++
+	//value.TimesCoded++
 	workItemMap[item.ID] = value
 	workDB.persistWorkItem(value)
 
@@ -264,7 +264,7 @@ func chooseRegularWorkItem(request BlockReq) (WorkItem, error) {
 func blockAppropriateForUser(item WorkItem, request BlockReq, user User) bool {
 	if item.Active {
 		return false
-	} else if item.TimesCoded != 0 {
+	} else if item.TimesCoded >= numRealBlockPasses {
 		fmt.Println("item has been coded already")
 		return false
 	} else if item.Training {
@@ -356,11 +356,13 @@ func chooseSpecificBlock(req BlockReq) (WorkItem, error) {
 	if !exists {
 		return workItem, ErrWorkItemDoesntExist
 	}
+	if !workItem.Training /* &&  !workItem.Reliability */ && workItem.TimesCoded >= numRealBlockPasses {
+		return workItem, ErrBlockGroupFull
+	}
 	activateWorkItem(workItem, req)
 
 	return workItem, nil
 }
-
 
 func chooseTrainingWorkItem(request BlockReq) (WorkItem, error) {
 	var workItem WorkItem

@@ -23,6 +23,10 @@ var (
 	// numBlockPasses times.
 	ErrBlockGroupFull = errors.New("This block has already been coded through all passes")
 
+	// ErrBlockAlreadyCodedByUser means that this user has already submitted
+	// a response to this block
+	ErrBlockAlreadyCodedByUser = errors.New("This block has already been coded by this user")
+
 	// ErrAddBlockFailed means that something prevented a Block from
 	// being added to a BlockGroup
 	ErrAddBlockFailed = errors.New("Adding block to BlockGroup failed")
@@ -39,7 +43,10 @@ const (
 	// name of the database's labels bucket
 	labelsBucket = "Labels"
 
-	numRealBlockPasses = 2
+	// number of times a (real) block should be coded.
+	// training and reliability blocks can be coded arbitrarily
+	// many times
+	numRealBlockPasses = 3
 )
 
 // LabelsDB is a wrapper around a boltDB
@@ -163,7 +170,7 @@ func (group *BlockGroup) addBlock(block Block) error {
 		return nil
 	} else if block.Reliability {
 		if group.coderPresent(block.LabKey, block.Coder) {
-			return ErrBlockGroupFull
+			return ErrBlockAlreadyCodedByUser
 		}
 		block.Instance = len(group.Blocks)
 		group.Blocks.addBlock(block)
@@ -389,6 +396,10 @@ func (db *LabelsDB) addBlock(block Block) error {
 			err := bucket.Put([]byte(newBlockGroup.ID), newEncodedBlockGroup)
 			return err
 		})
+		blockWorkItem := workItemMap[block.ID]
+		blockWorkItem.TimesCoded = len(newBlockGroup.Blocks)
+		workItemMap[block.ID] = blockWorkItem
+		workDB.persistWorkItem(blockWorkItem)
 		return updateErr
 	}
 
@@ -412,6 +423,12 @@ func (db *LabelsDB) addBlock(block Block) error {
 		err := bucket.Put([]byte(blockGroup.ID), encodedBlockGroup)
 		return err
 	})
+
+	blockWorkItem := workItemMap[block.ID]
+	blockWorkItem.TimesCoded = len(blockGroup.Blocks)
+	workItemMap[block.ID] = blockWorkItem
+	workDB.persistWorkItem(blockWorkItem)
+
 	return updateErr
 }
 
@@ -520,6 +537,12 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 			}
 			fmt.Println("\n\nblockGroup key delete worked")
 			keyWasDeleted = true
+
+			blockWorkItem := workItemMap[blockGroup.ID]
+			blockWorkItem.TimesCoded = len(blockGroup.Blocks)
+			workItemMap[blockGroup.ID] = blockWorkItem
+			workDB.persistWorkItem(blockWorkItem)
+
 			continue
 		}
 
@@ -528,6 +551,12 @@ func (db *LabelsDB) deleteBlocks(instanceMap InstanceMap) (bool, error) {
 		if setNewGroupErr != nil {
 			return keyWasDeleted, setNewGroupErr
 		}
+
+		blockWorkItem := workItemMap[blockGroup.ID]
+		blockWorkItem.TimesCoded = len(blockGroup.Blocks)
+		workItemMap[blockGroup.ID] = blockWorkItem
+		workDB.persistWorkItem(blockWorkItem)
+
 		fmt.Println("\n\ngot past labelsDB.setBlockGroup()")
 	}
 	fmt.Println("outside of labelsDB.deleteBlocks() for loop, about to return")

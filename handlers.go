@@ -81,7 +81,6 @@ func (br *BlockReq) userFromDB() (User, error) {
 	return user, err
 }
 
-
 /*
 ShutdownRequest is a JSON encoded request to
 shutdown the server. This will tell the server
@@ -113,13 +112,12 @@ func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(blockReq.userID())
 
-		// make sure the lab is one of the approved labs
+	// make sure the lab is one of the approved labs
 	if !mainConfig.labIsRegistered(blockReq.LabKey) {
 		http.Error(w, ErrLabNotRegistered.Error(), 400)
 		fmt.Println("Unauthorized Lab Key")
 		return
 	}
-
 
 	var workItem WorkItem
 	var chooseWIErr error
@@ -194,7 +192,7 @@ func getSpecificBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	workItem, chooseWIErr := chooseSpecificBlock(blockReq)
-	
+
 	if chooseWIErr != nil {
 		fmt.Println("returning error http code from chooseSpecificBlock()")
 		http.Error(w, chooseWIErr.Error(), 404)
