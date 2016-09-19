@@ -356,7 +356,7 @@ func chooseSpecificBlock(req BlockReq) (WorkItem, error) {
 	if !exists {
 		return workItem, ErrWorkItemDoesntExist
 	}
-	if !workItem.Training /* &&  !workItem.Reliability */ && workItem.TimesCoded >= numRealBlockPasses {
+	if !workItem.Training  &&  !workItem.Reliability && workItem.TimesCoded >= numRealBlockPasses {
 		return workItem, ErrBlockGroupFull
 	}
 	activateWorkItem(workItem, req)

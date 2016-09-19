@@ -127,13 +127,6 @@ func migrateAddLabeledBlockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	inactivateWorkItem(workItem, request)
 
-	// addBlockErr := labelsDB.addBlock(block)
-	//
-	// if addBlockErr != nil {
-	// 	http.Error(w, addBlockErr.Error(), 400)
-	// 	return
-	// }
-
 }
 
 func migrateAddUserHandler(w http.ResponseWriter, r *http.Request) {
