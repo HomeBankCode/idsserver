@@ -5,6 +5,24 @@ import random
 
 import pyclan
 
+
+scrub_intervals = []
+
+def block_passes_criteria(block):
+    if (block.num_tier_lines > 10) and \
+        (len(block.get_tiers("FAN", "MAN")) >= 2) and\
+        (not block_contains_scrub_region(block)):
+        return True
+    return False
+
+def block_contains_scrub_region(block):
+    for interval in scrub_intervals:
+        if (interval[0] < block.onset) and (interval[1] > block.onset):
+            return True
+        elif (interval[0] < block.offset) and (interval[1] > block.offset):
+            return True
+    return False
+
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
@@ -19,15 +37,21 @@ if __name__ == "__main__":
 
             clan_file = pyclan.ClanFile(filepath)
 
-            random_blockrange = range(1, clan_file.num_blocks)
+            random_blockrange = clan_file.block_index
             random.shuffle(random_blockrange)
 
             selected_blocks = []
 
+            scrub_tiers = clan_file.get_tiers("SCR")
+            scrub_intervals = []
+            if len(scrub_tiers) > 0:
+                for interval in scrub_tiers.line_map:
+                    scrub_intervals.append([interval.time_onset, interval.time_offset])
+
             for block_num in random_blockrange:
                 block = clan_file.get_conv_block(block_num)
 
-                if (block.num_tier_lines > 10) and (len(block.get_tiers("FAN", "MAN")) > 0):
+                if block_passes_criteria(block):
                     selected_blocks.append(block.index)
                     if len(selected_blocks) == 20:
                         break
