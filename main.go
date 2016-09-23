@@ -237,6 +237,6 @@ func main() {
 	http.HandleFunc("/v1/migrate-add-user/", migrateAddUserHandler)
 	http.HandleFunc("/v1/migrate-set-active-work-item/", migrateSetActiveWorkItemHandler)
 
-	http.ListenAndServe(":4000", nil)
+	http.ListenAndServe(":8080", nil)
 
 }
