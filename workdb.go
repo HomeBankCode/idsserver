@@ -271,8 +271,7 @@ func blockAppropriateForUser(item WorkItem, request BlockReq, user User) bool {
 		return false
 	} else if item.Reliability {
 		return false
-	} else if userHasBlockFromFile(item, request, user) {
-		fmt.Println("user has block from this file")
+	} else if user.prevCoded(item.ID) {
 		return false
 	}
 	return true

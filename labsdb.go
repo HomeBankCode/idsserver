@@ -222,6 +222,16 @@ func (user *User) prevCodedRelia(blockID string) bool {
 
 }
 
+func (user *User) prevCoded(blockID string) bool {
+	for _, userItem := range user.PastWorkItems {
+		if userItem == blockID {
+			return true
+		}
+	}
+	return false
+
+}
+
 func (lab *Lab) encode() ([]byte, error) {
 	enc, err := json.MarshalIndent(lab, "", " ")
 	if err != nil {
