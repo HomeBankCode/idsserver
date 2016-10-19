@@ -16,24 +16,28 @@ def block_passes_criteria(block):
     return False
 
 def block_contains_scrub_region(block):
+    contains = False
     for interval in scrub_intervals:
-        if (interval[0] < block.onset) and (interval[1] > block.onset):
-            return True
-        elif (interval[0] < block.offset) and (interval[1] > block.offset):
-            return True
-    return False
+        if block.onset <= interval[0] <= block.offset:
+            contains = True
+        if block.onset <= interval[1] <= block.offset:
+            contains = True
+        if block.onset >= interval[0] and block.offset <= interval[1]:
+            contains = True
+    return contains
 
 if __name__ == "__main__":
 
     start_dir = sys.argv[1]
+    output_dir = sys.argv[2]
 
     for root, dirs, files in os.walk(start_dir):
         cha_files = [file for file in files if file.endswith(".cha")]
         if len(cha_files) == 1:
             cha_file = cha_files[0]
             filepath = os.path.join(root, cha_file)
-            csv_path = os.path.join(root, cha_file.replace(".cha", ".csv"))
-            new_cha_path = os.path.join(root, cha_file.replace(".cha", "_idslabel.cha"))
+            csv_path = os.path.join(output_dir, cha_file.replace(".cha", ".csv"))
+            new_cha_path = os.path.join(output_dir, cha_file.replace(".cha", "_idslabel.cha"))
 
             clan_file = pyclan.ClanFile(filepath)
 
@@ -53,7 +57,7 @@ if __name__ == "__main__":
 
                 if block_passes_criteria(block):
                     selected_blocks.append(block.index)
-                    if len(selected_blocks) == 20:
+                    if len(selected_blocks) == 60:
                         break
 
             clan_file.new_file_from_blocks(new_cha_path, selected_blocks[:21])

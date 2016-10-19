@@ -15,3 +15,11 @@ debug
 migrate
 sample_config_admin.json
 sample_config.json
+scripts/bergelson_pass1
+group_manifests
+*.csv
+scripts/scrap_data
+scripts/manifests
+scripts/out
+scripts/scrubbed
+data_tree_new
